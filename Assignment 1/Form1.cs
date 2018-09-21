@@ -55,7 +55,7 @@ namespace INFOIBV {
             // (2) Contrast
             Contrast(image);
 
-            // (4) Linear Filter
+            // (3/4) Gaussian / Linear Filter
             //Linear(image, GaussianKernel(5, 2));
 
             // (5) Median Filter
