@@ -134,9 +134,13 @@ namespace INFOIBV
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
                     Color pixelColor = image[x, y];
-                    int r = (int)((pixelColor.R - loR) * rMult);
-                    int g = (int)((pixelColor.G - loG) * gMult);
-                    int b = (int)((pixelColor.B - loB) * bMult);
+                    int r, g, b;
+                    if (hiR - loR > 0) r = (int)((pixelColor.R - loR) * rMult);
+                    else r = pixelColor.R;
+                    if (hiG - loG > 0) g = (int)((pixelColor.G - loG) * gMult);
+                    else g = pixelColor.G;
+                    if (hiB - loB > 0) b = (int)((pixelColor.B - loB) * bMult);
+                    else b = pixelColor.B;
                     Color updatedColor = Color.FromArgb(r, g, b);
                     image[x, y] = updatedColor;
                 }
