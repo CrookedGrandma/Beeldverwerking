@@ -36,7 +36,6 @@
             this.saveImageDialog = new System.Windows.Forms.SaveFileDialog();
             this.saveButton = new System.Windows.Forms.Button();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
-            this.progressBar = new System.Windows.Forms.ProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
@@ -54,7 +53,7 @@
             // openImageDialog
             // 
             this.openImageDialog.Filter = "Bitmap files (*.bmp;*.gif;*.jpg;*.png;*.tiff;*.jpeg)|*.bmp;*.gif;*.jpg;*.png;*.ti" +
-                "ff;*.jpeg";
+    "ff;*.jpeg";
             this.openImageDialog.InitialDirectory = "..\\..\\images";
             // 
             // imageFileName
@@ -108,21 +107,11 @@
             this.pictureBox2.TabIndex = 5;
             this.pictureBox2.TabStop = false;
             // 
-            // progressBar
-            // 
-            this.progressBar.Location = new System.Drawing.Point(587, 14);
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(276, 20);
-            this.progressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
-            this.progressBar.TabIndex = 6;
-            this.progressBar.Visible = false;
-            // 
             // INFOIBV
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1052, 576);
-            this.Controls.Add(this.progressBar);
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.saveButton);
             this.Controls.Add(this.applyButton);
@@ -150,7 +139,6 @@
         private System.Windows.Forms.SaveFileDialog saveImageDialog;
         private System.Windows.Forms.Button saveButton;
         private System.Windows.Forms.PictureBox pictureBox2;
-        private System.Windows.Forms.ProgressBar progressBar;
 
     }
 }
