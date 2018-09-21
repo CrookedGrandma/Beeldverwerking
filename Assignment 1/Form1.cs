@@ -61,6 +61,9 @@ namespace INFOIBV {
             // (5) Median Filter
             Median(image, 5);
 
+            // (7) Thresholding
+            Threshold(image, 128);
+
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -187,6 +190,16 @@ namespace INFOIBV {
                     Array.Sort(output);
                     int op = output[output.Length / 2];
                     image[x, y] = Color.FromArgb(op, op, op);
+                }
+            }
+        }
+
+        private void Threshold(Color[,] image, int threshold) {
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    Color pixelColor = image[x, y];
+                    if (pixelColor.R < threshold) image[x, y] = Color.FromArgb(0, 0, 0);
+                    else image[x, y] = Color.FromArgb(255, 255, 255);
                 }
             }
         }
