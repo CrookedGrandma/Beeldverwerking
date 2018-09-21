@@ -56,7 +56,10 @@ namespace INFOIBV {
             Contrast(image);
 
             // (4) Linear Filter
-            Linear(image, GaussianKernel(7, 4));
+            //Linear(image, GaussianKernel(5, 2));
+
+            // (5) Median Filter
+            Median(image, 5);
 
             //==========================================================================================
 
@@ -147,7 +150,6 @@ namespace INFOIBV {
             int height = InputImage.Size.Height;
             int xrange = width - 1;
             int yrange = height - 1;
-            float sum = matrix.Cast<float>().Sum();
             Color[,] database = (Color[,])image.Clone();
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
@@ -160,6 +162,30 @@ namespace INFOIBV {
                         }
                     }
                     int op = (int)output;
+                    image[x, y] = Color.FromArgb(op, op, op);
+                }
+            }
+        }
+
+        private void Median(Color[,] image, int size) {
+            int radius = size / 2;
+            int width = InputImage.Size.Width;
+            int height = InputImage.Size.Height;
+            int xrange = width - 1;
+            int yrange = height - 1;
+            Color[,] database = (Color[,])image.Clone();
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    int[] output = new int[size * size];
+                    for (int u = x - radius; u <= x + radius; u++) {
+                        for (int v = y - radius; v <= y + radius; v++) {
+                            int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
+                            int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
+                            output[u - x + radius + (v - y + radius) * size] = image[eu, ev].R;
+                        }
+                    }
+                    Array.Sort(output);
+                    int op = output[output.Length / 2];
                     image[x, y] = Color.FromArgb(op, op, op);
                 }
             }
