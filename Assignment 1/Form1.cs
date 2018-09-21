@@ -50,15 +50,13 @@ namespace INFOIBV {
             //Negative(image);
 
             // (1) Grayscale
-            //Grayscale(image);
+            Grayscale(image);
 
             // (2) Contrast
-            //Contrast(image);
-
-            float[,] yeet = GaussianKernel(3, 1);
+            Contrast(image);
 
             // (4) Linear Filter
-            Linear(image, UniformKernel(5));
+            Linear(image, GaussianKernel(7, 4));
 
             //==========================================================================================
 
