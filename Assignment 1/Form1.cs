@@ -261,7 +261,9 @@ namespace INFOIBV {
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
                     int op = tempOutput[x, y];
-                    float multiply = Math.Min(-127 / (float)minimum, 128 / (float)maximum);
+                    float multiply;
+                    if (minimum == 0 && maximum == 0) multiply = 1;
+                    else multiply = Math.Min(-127 / (float)minimum, 128 / (float)maximum);
                     op = 127 + (int)(op * multiply);
                     image[x, y] = Color.FromArgb(op, op, op);
                 }
