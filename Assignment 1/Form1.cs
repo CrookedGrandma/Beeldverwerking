@@ -53,16 +53,22 @@ namespace INFOIBV {
             Grayscale(image);
 
             // (2) Contrast
-            Contrast(image);
+            //Contrast(image);
 
             // (3/4) Gaussian / Linear Filter
-            //Linear(image, GaussianKernel(5, 2));
+            //Linear(image, GaussianKernel(5,3));
 
             // (5) Median Filter
-            Median(image, 5);
+            //Median(image, 5);
+
+            // (6) Edges
+            Edges(image);
 
             // (7) Thresholding
-            Threshold(image, 128);
+            //Threshold(image, 128);
+
+            //Bonus: sharpen edges
+            //SharpenEdges(image);
 
             //==========================================================================================
 
@@ -170,6 +176,121 @@ namespace INFOIBV {
             }
         }
 
+        private void Edges(Color[,] image)
+        {
+            
+            float[,] matrix = EdgeKernel();
+            int size = matrix.GetLength(0);
+            int radius = size / 2;
+            int width = InputImage.Size.Width;
+            int height = InputImage.Size.Height;
+            int[,] tempOutput = new int[width, height];
+            int xrange = width - 1;
+            int yrange = height - 1;
+            int minimum = 0;
+            int maximum = 0;
+            Color[,] database = (Color[,])image.Clone();
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    float output = 0;
+                    for (int u = x - radius; u <= x + radius; u++)
+                    {
+                        for (int v = y - radius; v <= y + radius; v++)
+                        {
+                            int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
+                            int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
+                            output += database[eu, ev].R * matrix[u - x + radius, v - y + radius];
+                        }
+                    }
+                    int op = (int)output;
+                    tempOutput[x,y] = op;
+                    if(op < minimum)
+                    {
+                        minimum = op;
+                    }
+                    if(op > maximum)
+                    {
+                        maximum = op;
+                    }
+                }
+            }
+            for(int x = 0; x < width; x++)
+            {
+                for(int y = 0; y < height; y++)
+                {
+                    int op = tempOutput[x, y];
+                    float multiply = Math.Min(-127 / (float)minimum, 128 / (float)maximum);
+                    op = 127 + (int)(op * multiply);
+                    image[x, y] = Color.FromArgb(op, op, op);
+                }
+            }
+            Contrast(image);
+        }
+
+        private void SharpenEdges(Color[,] image, int weight = 2)
+        {
+
+            float[,] matrix = EdgeKernel();
+            int size = matrix.GetLength(0);
+            int radius = size / 2;
+            int width = InputImage.Size.Width;
+            int height = InputImage.Size.Height;
+            int[,] tempOutput = new int[width, height];
+            int xrange = width - 1;
+            int yrange = height - 1;
+            int minimum = 0;
+            int maximum = 0;
+            Color[,] database = (Color[,])image.Clone();
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    float output = 0;
+                    for (int u = x - radius; u <= x + radius; u++)
+                    {
+                        for (int v = y - radius; v <= y + radius; v++)
+                        {
+                            int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
+                            int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
+                            output += database[eu, ev].R * matrix[u - x + radius, v - y + radius];
+                        }
+                    }
+                    int op = (int)output;
+                    tempOutput[x, y] = op;
+                    if (op < minimum)
+                    {
+                        minimum = op;
+                    }
+                    if (op > maximum)
+                    {
+                        maximum = op;
+                    }
+                }
+            }
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    int op = tempOutput[x, y];
+                    float multiply = Math.Min(-127 / (float)minimum, 128 / (float)maximum);
+                    op = (int)(op * multiply);
+                    op = image[x, y].R - weight * op;
+                    if (op > 255)
+                    {
+                        op = 255;
+                    }
+                    if(op < 0)
+                    {
+                        op = 0;
+                    }
+                    image[x, y] = Color.FromArgb(op, op, op);
+                }
+            }
+            Contrast(image);
+        }
+
         private void Median(Color[,] image, int size) {
             int radius = size / 2;
             int width = InputImage.Size.Width;
@@ -237,6 +358,9 @@ namespace INFOIBV {
             return kernel;
         }
 
+        private float[,] EdgeKernel(){
+            return new float[3, 3] { {0, 1, 0}, {1, -4, 1}, {0, 1, 0} };
+        }
         // Other supportive functions
 
         private float NormalPDF(float sigma, float x) {
