@@ -62,14 +62,16 @@ namespace INFOIBV {
             //Median(image, 5);
 
             // (6) Edges
-            Edges(image);
+            //Edges(image);
 
             // (7) Thresholding
             //Threshold(image, 128);
 
             //Bonus: sharpen edges
-            //SharpenEdges(image);
+            SharpenEdges(image);
 
+            //Bonus: Histogram equalisation
+            //FlattenHist(image);
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -98,6 +100,49 @@ namespace INFOIBV {
         //        }
         //    }
         //}
+
+        private int[] CalcHist(Color[,] image)
+        {
+            int[] hist = new int[256];
+            for (int x = 0; x < InputImage.Size.Width; x++)
+            {
+                for (int y = 0; y < InputImage.Size.Height; y++)
+                {
+                    int pixelColor = image[x, y].R;
+                    hist[pixelColor]++;
+                }
+            }
+            return hist;
+        }
+
+        private int[] CalcHistCapital(Color[,] image)
+        {
+            int[] hist = CalcHist(image);
+            int[] newHist = new int[256];
+            int total = 0;
+            for(int i = 0; i < 256;i++)
+            {
+                total += hist[i];
+                newHist[i] = total;
+            }
+            return newHist;
+        }
+
+        private void FlattenHist(Color[,] image)
+        {
+            int width = InputImage.Size.Width;
+            int height = InputImage.Size.Height;
+            int[] hist = CalcHistCapital(image);
+            for (int x = 0; x < InputImage.Size.Width; x++)
+            {
+                for (int y = 0; y < InputImage.Size.Height; y++)
+                {
+                    int pixelColor = image[x, y].R;
+                    int newColor = (int)(hist[pixelColor]* 255/((float)width*height));
+                    image[x, y] = Color.FromArgb(newColor, newColor, newColor);
+                }
+            }
+        }
 
         private void Negative(Color[,] image) {
             for (int x = 0; x < InputImage.Size.Width; x++) {
@@ -179,7 +224,8 @@ namespace INFOIBV {
         private void Edges(Color[,] image)
         {
             
-            float[,] matrix = EdgeKernel();
+            float[,] matrix = Sobel1();
+            float[,] altmatrix = Sobel2();
             int size = matrix.GetLength(0);
             int radius = size / 2;
             int width = InputImage.Size.Width;
@@ -187,46 +233,28 @@ namespace INFOIBV {
             int[,] tempOutput = new int[width, height];
             int xrange = width - 1;
             int yrange = height - 1;
-            int minimum = 0;
-            int maximum = 0;
             Color[,] database = (Color[,])image.Clone();
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++)
                 {
-                    float output = 0;
+                    float output1 = 0;
+                    float output2 = 0;
                     for (int u = x - radius; u <= x + radius; u++)
                     {
                         for (int v = y - radius; v <= y + radius; v++)
                         {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
                             int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
-                            output += database[eu, ev].R * matrix[u - x + radius, v - y + radius];
+                            output1 += database[eu, ev].R * matrix[u - x + radius, v - y + radius];
+                            output2 += database[eu, ev].R * altmatrix[u - x + radius, v - y + radius];
                         }
                     }
-                    int op = (int)output;
-                    tempOutput[x,y] = op;
-                    if(op < minimum)
-                    {
-                        minimum = op;
-                    }
-                    if(op > maximum)
-                    {
-                        maximum = op;
-                    }
-                }
-            }
-            for(int x = 0; x < width; x++)
-            {
-                for(int y = 0; y < height; y++)
-                {
-                    int op = tempOutput[x, y];
-                    float multiply = Math.Min(-127 / (float)minimum, 128 / (float)maximum);
-                    op = 127 + (int)(op * multiply);
+                    int op = (int)Math.Sqrt(output1*output1 + output2*output2);
+                    if(op > 255) { op = 255; }
                     image[x, y] = Color.FromArgb(op, op, op);
                 }
             }
-            Contrast(image);
         }
 
         private void SharpenEdges(Color[,] image, int weight = 2)
@@ -288,7 +316,6 @@ namespace INFOIBV {
                     image[x, y] = Color.FromArgb(op, op, op);
                 }
             }
-            Contrast(image);
         }
 
         private void Median(Color[,] image, int size) {
@@ -360,6 +387,15 @@ namespace INFOIBV {
 
         private float[,] EdgeKernel(){
             return new float[3, 3] { {0, 1, 0}, {1, -4, 1}, {0, 1, 0} };
+        }
+
+        private float[,] Sobel1()
+        {
+            return new float[3, 3] { {1,1,1}, {0,0,0}, {-1,-1,-1} };
+        }
+        private float[,] Sobel2()
+        {
+            return new float[3, 3] { { 1, 0, -1 }, { 1, 0, -1 }, { 1, 0, -1 } };
         }
         // Other supportive functions
 
