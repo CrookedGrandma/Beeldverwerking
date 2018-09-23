@@ -56,16 +56,16 @@ namespace INFOIBV {
             //Contrast(image);
 
             // (3/4) Gaussian / Linear Filter
-            //Linear(image, GaussianKernel(5,3));
+            //Linear(image, GaussianKernel(5, 2));
 
             // (5) Median Filter
-            //Median(image, 5);
+            Median(image, 5);
 
             // (6) Edges
             //Edges(image);
 
             // (7) Thresholding
-            //Threshold(image, 128);
+            //Threshold(image, 120);
 
             // Visualisation of Laplacian used in Edge Sharpening
             //Laplacian(image);
