@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
+﻿/*
+ * Tijmen van ter Beek - 5961564
+ * Kasper Nooteboom    - 5845866
+ */
+
+using System;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
-using System.IO;
 
 namespace INFOIBV {
     public partial class INFOIBV : Form {
@@ -56,16 +55,16 @@ namespace INFOIBV {
             //Contrast(image);
 
             // (3/4) Gaussian / Linear Filter
-            //Linear(image, GaussianKernel(5, 2));
+            //Linear(image, GaussianKernel(5, 1));
 
             // (5) Median Filter
-            Median(image, 5);
+            //Median(image, 5);
 
             // (6) Edges
             //Edges(image);
 
             // (7) Thresholding
-            //Threshold(image, 120);
+            //Threshold(image, 55);
 
             // Visualisation of Laplacian used in Edge Sharpening
             //Laplacian(image);
@@ -95,14 +94,6 @@ namespace INFOIBV {
 
         //==============================================================================================
         // Filter functions
-
-        //private void template(Color[,] image) {
-        //    for (int x = 0; x < InputImage.Size.Width; x++) {
-        //        for (int y = 0; y < InputImage.Size.Height; y++) {
-        //
-        //        }
-        //    }
-        //}
 
         private void Negative(Color[,] image) {
             for (int x = 0; x < InputImage.Size.Width; x++) {
