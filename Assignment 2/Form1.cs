@@ -4,70 +4,84 @@ using System.Windows.Forms;
 
 namespace INFOIBV {
     public partial class INFOIBV : Form {
-        private Bitmap InputImage;
-        private Bitmap OutputImage;
+        private Bitmap InputImage1, InputImage2, OutputImage;
+        private Color[,] Image, Image2, ImageOut;
 
         public INFOIBV() {
             InitializeComponent();
         }
 
-        private void LoadImageButton_Click(object sender, EventArgs e) {
-            if (openImageDialog.ShowDialog() == DialogResult.OK)                    // Open File Dialog
-             {
+        private void LoadImage1Button_Click(object sender, EventArgs e) {
+            if (openImageDialog.ShowDialog() == DialogResult.OK) {                  // Open File Dialog
                 string file = openImageDialog.FileName;                             // Get the file name
-                imageFileName.Text = file;                                          // Show file name
-                if (InputImage != null) InputImage.Dispose();                       // Reset image
-                InputImage = new Bitmap(file);                                      // Create new Bitmap from file
-                if (InputImage.Size.Height <= 0 || InputImage.Size.Width <= 0 ||
-                    InputImage.Size.Height > 512 || InputImage.Size.Width > 512)    // Dimension check
+                image1FileName.Text = file;                                         // Show file name
+                if (InputImage1 != null) InputImage1.Dispose();                     // Reset image
+                InputImage1 = new Bitmap(file);                                     // Create new Bitmap from file
+                if (InputImage1.Size.Height <= 0 || InputImage1.Size.Width <= 0 ||
+                    InputImage1.Size.Height > 512 || InputImage1.Size.Width > 512)  // Dimension check
                     MessageBox.Show("Error in image dimensions (have to be > 0 and <= 512)");
-                else
-                    pictureBox1.Image = (Image)InputImage;                          // Display input image
+                else {
+                    pictureBox1.Image = (Image)InputImage1;                         // Display input image
+                    Image = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
+                    ImageOut = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
+                    // Copy input Bitmap to array            
+                    for (int x = 0; x < InputImage1.Size.Width; x++) {
+                        for (int y = 0; y < InputImage1.Size.Height; y++) {
+                            Image[x, y] = InputImage1.GetPixel(x, y);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void LoadImage2Button_Click(object sender, EventArgs e) {
+            if (InputImage1 == null) {
+                MessageBox.Show("Please select Image 1 first.");
+                return;
+            }
+            if (openImageDialog.ShowDialog() == DialogResult.OK) {                  // Open File Dialog
+                string file = openImageDialog.FileName;                             // Get the file name
+                image2FileName.Text = file;                                         // Show file name
+                if (InputImage2 != null) InputImage2.Dispose();                     // Reset image
+                InputImage2 = new Bitmap(file);                                     // Create new Bitmap from file
+                if (InputImage2.Size != InputImage1.Size) {                         // Check if dimensions are identical
+                    MessageBox.Show(string.Format("Please select an image with the same dimensions as Image 1: {0} × {1}.", InputImage1.Size.Width, InputImage1.Size.Height));
+                    return;
+                }
+                if (InputImage2.Size.Height <= 0 || InputImage2.Size.Width <= 0 ||
+                    InputImage2.Size.Height > 512 || InputImage2.Size.Width > 512) {// Dimension check
+                    MessageBox.Show("Error in image dimensions (have to be > 0 and <= 512)");
+                    return;
+                }
+                pictureBox2.Image = (Image)InputImage2;                             // Display input image
+                Image2 = new Color[InputImage2.Size.Width, InputImage2.Size.Height];
+                for (int x = 0; x < InputImage2.Size.Width; x++) {
+                    for (int y = 0; y < InputImage2.Size.Height; y++) {
+                        Image2[x, y] = InputImage2.GetPixel(x, y);
+                    }
+                }
             }
         }
 
         private void applyButton_Click(object sender, EventArgs e) {
-            if (InputImage == null) return;                                             // Get out if no input image
+            if (InputImage1 == null) return;                                            // Get out if no input image
             if (OutputImage != null) OutputImage.Dispose();                             // Reset output image
-            OutputImage = new Bitmap(InputImage.Size.Width, InputImage.Size.Height);    // Create new output image
-            Color[,] Image = new Color[InputImage.Size.Width, InputImage.Size.Height];  // Create array to speed-up operations (Bitmap functions are very slow)
-
-            // Setup progress bar
-            progressBar.Visible = true;
-            progressBar.Minimum = 1;
-            progressBar.Maximum = InputImage.Size.Width * InputImage.Size.Height;
-            progressBar.Value = 1;
-            progressBar.Step = 1;
-
-            // Copy input Bitmap to array            
-            for (int x = 0; x < InputImage.Size.Width; x++) {
-                for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Image[x, y] = InputImage.GetPixel(x, y);                // Set pixel color in array at (x,y)
-                }
-            }
+            OutputImage = new Bitmap(InputImage1.Size.Width, InputImage1.Size.Height);  // Create new output image
 
             //==========================================================================================
-            // TODO: include here your own code
-            // example: create a negative image
-            for (int x = 0; x < InputImage.Size.Width; x++) {
-                for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
-                    Color updatedColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B); // Negative image
-                    Image[x, y] = updatedColor;                             // Set the new pixel color at coordinate (x,y)
-                    progressBar.PerformStep();                              // Increment progress bar
-                }
-            }
+            // (0) Negative
+            //Negative(Image);
+            
             //==========================================================================================
 
             // Copy array to output Bitmap
-            for (int x = 0; x < InputImage.Size.Width; x++) {
-                for (int y = 0; y < InputImage.Size.Height; y++) {
-                    OutputImage.SetPixel(x, y, Image[x, y]);                // Set the pixel color at coordinate (x,y)
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    OutputImage.SetPixel(x, y, ImageOut[x, y]);                // Set the pixel color at coordinate (x,y)
                 }
             }
 
-            pictureBox2.Image = (Image)OutputImage;                         // Display output image
-            progressBar.Visible = false;                                    // Hide progress bar
+            pictureBoxOut.Image = (Image)OutputImage;                       // Display output image
         }
 
         private void saveButton_Click(object sender, EventArgs e) {
@@ -76,5 +90,19 @@ namespace INFOIBV {
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
+        //==============================================================================================
+        // Filter functions
+
+        private void Negative(Color[,] image) {
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
+                    Color updatedColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B); // Negative image
+                    ImageOut[x, y] = updatedColor;                             // Set the new pixel color at coordinate (x,y)
+                }
+            }
+        }
+
+        //==============================================================================================
     }
 }
