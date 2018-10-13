@@ -70,7 +70,11 @@ namespace INFOIBV {
 
             //==========================================================================================
             // (0) Negative
-            //Negative(Image);
+            //Negative();
+
+            // (4) MIN/MAX
+            //Min();
+            Max();
             
             //==========================================================================================
 
@@ -93,12 +97,46 @@ namespace INFOIBV {
         //==============================================================================================
         // Filter functions
 
-        private void Negative(Color[,] image) {
+        //private void template() {
+        //    for (int x = 0; x < InputImage1.Size.Width; x++) {
+        //        for (int y = 0; y < InputImage1.Size.Height; y++) {
+        //            Color pixelColor = Image[x, y];
+        //            Color updatedColor = Color.FromArgb(pixelColor.R, pixelColor.G, pixelColor.B);
+        //            ImageOut[x, y] = updatedColor;
+        //        }
+        //    }
+        //}
+
+        private void Negative() {
             for (int x = 0; x < InputImage1.Size.Width; x++) {
                 for (int y = 0; y < InputImage1.Size.Height; y++) {
-                    Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
-                    Color updatedColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B); // Negative image
-                    ImageOut[x, y] = updatedColor;                             // Set the new pixel color at coordinate (x,y)
+                    Color pixelColor = Image[x, y];
+                    Color updatedColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B);
+                    ImageOut[x, y] = updatedColor;
+                }
+            }
+        }
+
+        private void Min() {
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    Color pixel1Color = Image[x, y];
+                    Color pixel2Color = Image2[x, y];
+                    int min = Math.Min(pixel1Color.R, pixel2Color.R);
+                    Color updatedColor = Color.FromArgb(min, min, min);
+                    ImageOut[x, y] = updatedColor;
+                }
+            }
+        }
+
+        private void Max() {
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    Color pixel1Color = Image[x, y];
+                    Color pixel2Color = Image2[x, y];
+                    int max = Math.Max(pixel1Color.R, pixel2Color.R);
+                    Color updatedColor = Color.FromArgb(max, max, max);
+                    ImageOut[x, y] = updatedColor;
                 }
             }
         }
