@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -75,7 +76,10 @@ namespace INFOIBV {
             // (4) MIN/MAX
             //Min();
             //Max();
-            
+
+            // (5) Value counting
+            ValueCount();
+
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -139,6 +143,19 @@ namespace INFOIBV {
                     ImageOut[x, y] = updatedColor;
                 }
             }
+        }
+
+        private void ValueCount() {
+            List<int> values = new List<int>(256);
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    int pixelColor = Image[x, y].R;
+                    if (!values.Contains(pixelColor)) values.Add(pixelColor);
+                }
+            }
+            values.Sort();
+            int count = values.Count;
+            MessageBox.Show(count.ToString());
         }
 
         //==============================================================================================
