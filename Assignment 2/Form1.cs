@@ -69,12 +69,12 @@ namespace INFOIBV {
             OutputImage = new Bitmap(InputImage1.Size.Width, InputImage1.Size.Height);  // Create new output image
 
             //==========================================================================================
-            // (0) Negative
-            //Negative();
+            // (3) Complement
+            //Complement();
 
             // (4) MIN/MAX
             //Min();
-            Max();
+            //Max();
             
             //==========================================================================================
 
@@ -107,7 +107,7 @@ namespace INFOIBV {
         //    }
         //}
 
-        private void Negative() {
+        private void Complement() {
             for (int x = 0; x < InputImage1.Size.Width; x++) {
                 for (int y = 0; y < InputImage1.Size.Height; y++) {
                     Color pixelColor = Image[x, y];
