@@ -153,7 +153,6 @@ namespace INFOIBV {
                     if (!values.Contains(pixelColor)) values.Add(pixelColor);
                 }
             }
-            values.Sort();
             int count = values.Count;
             MessageBox.Show(count.ToString());
         }
