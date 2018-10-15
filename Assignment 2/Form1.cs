@@ -73,8 +73,12 @@ namespace INFOIBV {
             //==========================================================================================
 
             // (1) Erosion/Dilation
-            Erosion(CircStructElem(5));
-            Dilation(CircStructElem(5));
+            //Erosion(CircStructElem(5));
+            //Dilation(CircStructElem(5));
+
+            // (2) Opening/Closing
+            //ImgOpening(CircStructElem(5));
+            //ImgClosing(CircStructElem(5));
 
             // (3) Complement
             //Complement();
@@ -191,6 +195,16 @@ namespace INFOIBV {
                 }
             }
             RefreshImage();
+        }
+
+        private void ImgOpening(SEP[] structure) {
+            Erosion(structure);
+            Dilation(structure);
+        }
+
+        private void ImgClosing(SEP[] structure) {
+            Dilation(structure);
+            Erosion(structure);
         }
 
         private void Complement() {
