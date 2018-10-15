@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace INFOIBV {
@@ -24,7 +25,6 @@ namespace INFOIBV {
                 else {
                     pictureBox1.Image = (Image)InputImage1;                         // Display input image
                     Image = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
-                    ImageOut = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
                     // Copy input Bitmap to array            
                     for (int x = 0; x < InputImage1.Size.Width; x++) {
                         for (int y = 0; y < InputImage1.Size.Height; y++) {
@@ -68,8 +68,14 @@ namespace INFOIBV {
             if (InputImage1 == null) return;                                            // Get out if no input image
             if (OutputImage != null) OutputImage.Dispose();                             // Reset output image
             OutputImage = new Bitmap(InputImage1.Size.Width, InputImage1.Size.Height);  // Create new output image
+            ImageOut = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
 
             //==========================================================================================
+
+            // (1) Erosion/Dilation
+            //Erosion(CircStructElem(11));
+            //Dilation(CircStructElem(11));
+
             // (3) Complement
             //Complement();
 
@@ -78,7 +84,7 @@ namespace INFOIBV {
             //Max();
 
             // (5) Value counting
-            ValueCount(true);
+            //ValueCount(true);
 
             //==========================================================================================
 
@@ -110,6 +116,80 @@ namespace INFOIBV {
         //        }
         //    }
         //}
+
+        private void Erosion(SEP[] structure) {
+            if (IsBinary()) {
+                MakeBlack();
+                SEP[] mirror = Mirror(structure);
+                for (int x = 0; x < InputImage1.Size.Width; x++) {
+                    for (int y = 0; y < InputImage1.Size.Height; y++) {
+                        foreach (SEP sep in mirror) {
+                            int newX = x + sep.C.X;
+                            int newY = y + sep.C.Y;
+                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
+                                if (Image[newX, newY].R > 0) {
+                                    ImageOut[x, y] = White();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                for (int x = 0; x < InputImage1.Size.Width; x++) {
+                    for (int y = 0; y < InputImage1.Size.Height; y++) {
+                        List<int> outs = new List<int>(structure.Length);
+                        foreach (SEP sep in structure) {
+                            int newX = x + sep.C.X;
+                            int newY = y + sep.C.Y;
+                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
+                                outs.Add(Image[newX, newY].R + sep.V);
+                            }
+                        }
+                        int output = outs.Max();
+                        ImageOut[x, y] = Color.FromArgb(output, output, output);
+                    }
+                }
+            }
+        }
+
+        private void Dilation(SEP[] structure) {
+            if (IsBinary()) {
+                MakeWhite();
+                SEP[] mirror = Mirror(structure);
+                for (int x = 0; x < InputImage1.Size.Width; x++) {
+                    for (int y = 0; y < InputImage1.Size.Height; y++) {
+                        foreach (SEP sep in mirror) {
+                            int newX = x + sep.C.X;
+                            int newY = y + sep.C.Y;
+                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
+                                if (Image[newX, newY].R == 0) {
+                                    ImageOut[x, y] = Black();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                for (int x = 0; x < InputImage1.Size.Width; x++) {
+                    for (int y = 0; y < InputImage1.Size.Height; y++) {
+                        List<int> outs = new List<int>(structure.Length);
+                        foreach (SEP sep in structure) {
+                            int newX = x + sep.C.X;
+                            int newY = y + sep.C.Y;
+                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
+                                outs.Add(Image[newX, newY].R - sep.V);
+                            }
+                        }
+                        int output = outs.Min();
+                        ImageOut[x, y] = Color.FromArgb(output, output, output);
+                    }
+                }
+            }
+        }
 
         private void Complement() {
             for (int x = 0; x < InputImage1.Size.Width; x++) {
@@ -161,7 +241,22 @@ namespace INFOIBV {
         // Structuring element functions
 
         private SEP[] FourNeigh3x3zero() {
-            return new SEP[5] { new SEP(-1, -1, 0), new SEP(-1, 0, 0), new SEP(0, 0, 0), new SEP(1, 0, 0), new SEP(1, 1, 0) };
+            return new SEP[5] { new SEP(0, -1, 0), new SEP(-1, 0, 0), new SEP(0, 0, 0), new SEP(1, 0, 0), new SEP(0, 1, 0) };
+        }
+
+        private SEP[] CircStructElem(int size) {
+            if (size % 2 < 1) throw new Exception("Structuring element size not an odd number.");
+            List<SEP> seps = new List<SEP>();
+            float r = size / 2f;
+            for (int x = -(int)r; x <= (int)r; x++) {
+                for (int y = -(int)r; y <= (int)r; y++) {
+                    if (x*x + y*y < r * r) {
+                        seps.Add(new SEP(x, y, 0));
+                    }
+                }
+            }
+            SEP[] sepsAR = seps.ToArray();
+            return sepsAR;
         }
 
         // Helper functions
@@ -170,10 +265,57 @@ namespace INFOIBV {
             return ValueCount(false) <= 2;
         }
 
+        private int ClampX(int x) {
+            if (x < 0) return 0;
+            else if (x >= InputImage1.Width) return InputImage1.Width - 1;
+            else return x;
+        }
+
+        private int ClampY(int y) {
+            if (y < 0) return 0;
+            else if (y >= InputImage1.Height) return InputImage1.Height - 1;
+            else return y;
+        }
+
+        private Color White() {
+            return Color.White;
+        }
+
+        private Color Black() {
+            return Color.Black;
+        }
+
+        private void MakeBlack() {
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    ImageOut[x, y] = Black();
+                }
+            }
+        }
+
+        private void MakeWhite() {
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    ImageOut[x, y] = White();
+                }
+            }
+        }
+
+        private SEP[] Mirror(SEP[] structure) {
+            SEP[] mirror = new SEP[structure.Length];
+            for (int i = 0; i < structure.Length; i++) {
+                mirror[i] = structure[i].Mirrored;
+            }
+            return mirror;
+        }
+
         // Structs
 
+        /// <summary>
+        /// A simple coordinate pair, containing an x and y value
+        /// </summary>
         private struct Coord {
-            public int x, y;
+            private int x, y;
             public Coord(int x, int y) {
                 this.x = x;
                 this.y = y;
@@ -188,9 +330,12 @@ namespace INFOIBV {
             }
         }
 
-        private struct SEP { // Structuring Element Point
-            public Coord c;
-            public int v;
+        /// <summary>
+        /// A point in a structuring element, containing a coordinate and a value
+        /// </summary>
+        private struct SEP {
+            private Coord c;
+            private int v;
             public SEP(Coord c, int v) {
                 this.c = c;
                 this.v = v;
@@ -206,6 +351,11 @@ namespace INFOIBV {
             public int V {
                 get { return v; }
                 set { v = value; }
+            }
+            public SEP Mirrored {
+                get {
+                    return new SEP(-c.X, -c.Y, v);
+                }
             }
         }
 
