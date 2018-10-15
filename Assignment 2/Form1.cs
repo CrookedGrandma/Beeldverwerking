@@ -73,8 +73,8 @@ namespace INFOIBV {
             //==========================================================================================
 
             // (1) Erosion/Dilation
-            //Erosion(CircStructElem(11));
-            //Dilation(CircStructElem(11));
+            Erosion(CircStructElem(5));
+            Dilation(CircStructElem(5));
 
             // (3) Complement
             //Complement();
@@ -147,11 +147,12 @@ namespace INFOIBV {
                                 outs.Add(Image[newX, newY].R + sep.V);
                             }
                         }
-                        int output = outs.Max();
+                        int output = ClampCol(outs.Max());
                         ImageOut[x, y] = Color.FromArgb(output, output, output);
                     }
                 }
             }
+            RefreshImage();
         }
 
         private void Dilation(SEP[] structure) {
@@ -184,11 +185,12 @@ namespace INFOIBV {
                                 outs.Add(Image[newX, newY].R - sep.V);
                             }
                         }
-                        int output = outs.Min();
+                        int output = ClampCol(outs.Min());
                         ImageOut[x, y] = Color.FromArgb(output, output, output);
                     }
                 }
             }
+            RefreshImage();
         }
 
         private void Complement() {
@@ -199,6 +201,7 @@ namespace INFOIBV {
                     ImageOut[x, y] = updatedColor;
                 }
             }
+            RefreshImage();
         }
 
         private void Min() {
@@ -211,6 +214,7 @@ namespace INFOIBV {
                     ImageOut[x, y] = updatedColor;
                 }
             }
+            RefreshImage();
         }
 
         private void Max() {
@@ -223,6 +227,7 @@ namespace INFOIBV {
                     ImageOut[x, y] = updatedColor;
                 }
             }
+            RefreshImage();
         }
 
         private int ValueCount(bool show) {
@@ -238,6 +243,16 @@ namespace INFOIBV {
             return count;
         }
 
+        private void Threshold(int threshold) {
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    if (Image[x, y].R < threshold) ImageOut[x, y] = Black();
+                    else ImageOut[x, y] = White();
+                }
+            }
+            RefreshImage();
+        }
+
         // Structuring element functions
 
         private SEP[] FourNeigh3x3zero() {
@@ -250,7 +265,7 @@ namespace INFOIBV {
             float r = size / 2f;
             for (int x = -(int)r; x <= (int)r; x++) {
                 for (int y = -(int)r; y <= (int)r; y++) {
-                    if (x*x + y*y < r * r) {
+                    if (x*x + y*y <= r*r) {
                         seps.Add(new SEP(x, y, 0));
                     }
                 }
@@ -275,6 +290,12 @@ namespace INFOIBV {
             if (y < 0) return 0;
             else if (y >= InputImage1.Height) return InputImage1.Height - 1;
             else return y;
+        }
+
+        private int ClampCol(int c) {
+            if (c < 0) return 0;
+            else if (c > 255) return 255;
+            else return c;
         }
 
         private Color White() {
@@ -307,6 +328,10 @@ namespace INFOIBV {
                 mirror[i] = structure[i].Mirrored;
             }
             return mirror;
+        }
+
+        private void RefreshImage() {
+            Image = (Color[,])ImageOut.Clone();
         }
 
         // Structs
