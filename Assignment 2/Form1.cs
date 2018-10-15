@@ -78,7 +78,7 @@ namespace INFOIBV {
             //Max();
 
             // (5) Value counting
-            ValueCount();
+            ValueCount(true);
 
             //==========================================================================================
 
@@ -145,7 +145,7 @@ namespace INFOIBV {
             }
         }
 
-        private void ValueCount() {
+        private int ValueCount(bool show) {
             List<int> values = new List<int>(256);
             for (int x = 0; x < InputImage1.Size.Width; x++) {
                 for (int y = 0; y < InputImage1.Size.Height; y++) {
@@ -154,7 +154,8 @@ namespace INFOIBV {
                 }
             }
             int count = values.Count;
-            MessageBox.Show(count.ToString());
+            if (show) MessageBox.Show(count.ToString());
+            return count;
         }
 
         //==============================================================================================
