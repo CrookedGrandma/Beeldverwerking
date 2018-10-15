@@ -90,6 +90,9 @@ namespace INFOIBV {
             // (5) Value counting
             //ValueCount(true);
 
+            // (6) Boundary trace
+            PaintList(Boundary());
+
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -257,6 +260,34 @@ namespace INFOIBV {
             return count;
         }
 
+        private List<Coord> Boundary() {
+            Coord current;
+            Coord last = new Coord(0, 1);
+            for (int y = 0; y < InputImage1.Size.Height; y++) {
+                for (int x = 0; x < InputImage1.Size.Width; x++) {
+                    if (Image[x, y].R == 0) {
+                        current = new Coord(x, y);
+                        List<Coord> history = new List<Coord>();
+                        while (!(history.Count > 2 && (history[0] == last && history[1] == current))) { // Check end condition
+                            history.Add(current);
+                            int value = -1;
+                            Coord next = last.Clone();
+                            while (value != 0) {
+                                next = NextCoord(next, current);
+                                if (ClampX(next.X) == next.X && ClampY(next.Y) == next.Y) value = Image[next.X, next.Y].R;
+                            }
+                            last = current.Clone();
+                            current = next.Clone();
+                        }
+                        return history;
+                    }
+                    last = new Coord(x, y);
+                }
+                last = new Coord(0, y);
+            }
+            return new List<Coord>();
+        }
+
         private void Threshold(int threshold) {
             for (int x = 0; x < InputImage1.Size.Width; x++) {
                 for (int y = 0; y < InputImage1.Size.Height; y++) {
@@ -279,7 +310,7 @@ namespace INFOIBV {
             float r = size / 2f;
             for (int x = -(int)r; x <= (int)r; x++) {
                 for (int y = -(int)r; y <= (int)r; y++) {
-                    if (x*x + y*y <= r*r) {
+                    if (x * x + y * y <= r * r) {
                         seps.Add(new SEP(x, y, 0));
                     }
                 }
@@ -344,8 +375,26 @@ namespace INFOIBV {
             return mirror;
         }
 
+        private Coord NextCoord(Coord current, Coord center) {
+            Coord relative = current - center;
+            int x = -relative.Y;
+            int y = relative.X;
+            if (relative.X == relative.Y) y = 0;
+            if (relative.X == -relative.Y) x = 0;
+            Coord vect = new Coord(x, y);
+            return current + vect;
+        }
+
         private void RefreshImage() {
             Image = (Color[,])ImageOut.Clone();
+        }
+
+        private void PaintList(List<Coord> list) {
+            MakeWhite();
+            foreach (Coord c in list) {
+                ImageOut[c.X, c.Y] = Black();
+            }
+            RefreshImage();
         }
 
         // Structs
@@ -353,7 +402,7 @@ namespace INFOIBV {
         /// <summary>
         /// A simple coordinate pair, containing an x and y value
         /// </summary>
-        private struct Coord {
+        private class Coord {
             private int x, y;
             public Coord(int x, int y) {
                 this.x = x;
@@ -366,6 +415,30 @@ namespace INFOIBV {
             public int Y {
                 get { return y; }
                 set { y = value; }
+            }
+            public Coord Clone() {
+                return new Coord(x, y);
+            }
+            public static Coord operator +(Coord a, Coord b) {
+                return new Coord(a.X + b.X, a.Y + b.Y);
+            }
+            public static Coord operator -(Coord a, Coord b) {
+                return new Coord(a.X - b.X, a.Y - b.Y);
+            }
+            public static bool operator ==(Coord a, Coord b) {
+                return a.X == b.X && a.Y == b.Y;
+            }
+            public static bool operator !=(Coord a, Coord b) {
+                return !(a == b);
+            }
+            public override bool Equals(object obj) {
+                return base.Equals(obj);
+            }
+            public override int GetHashCode() {
+                return base.GetHashCode();
+            }
+            public override string ToString() {
+                return "(" + x + ", " + y + ")";
             }
         }
 
