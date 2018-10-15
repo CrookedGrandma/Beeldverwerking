@@ -158,6 +158,57 @@ namespace INFOIBV {
             return count;
         }
 
+        // Structuring element functions
+
+        private SEP[] FourNeigh3x3zero() {
+            return new SEP[5] { new SEP(-1, -1, 0), new SEP(-1, 0, 0), new SEP(0, 0, 0), new SEP(1, 0, 0), new SEP(1, 1, 0) };
+        }
+
+        // Helper functions
+
+        private bool IsBinary() {
+            return ValueCount(false) <= 2;
+        }
+
+        // Structs
+
+        private struct Coord {
+            public int x, y;
+            public Coord(int x, int y) {
+                this.x = x;
+                this.y = y;
+            }
+            public int X {
+                get { return x; }
+                set { x = value; }
+            }
+            public int Y {
+                get { return y; }
+                set { y = value; }
+            }
+        }
+
+        private struct SEP { // Structuring Element Point
+            public Coord c;
+            public int v;
+            public SEP(Coord c, int v) {
+                this.c = c;
+                this.v = v;
+            }
+            public SEP(int x, int y, int v) {
+                this.c = new Coord(x, y);
+                this.v = v;
+            }
+            public Coord C {
+                get { return c; }
+                set { c = value; }
+            }
+            public int V {
+                get { return v; }
+                set { v = value; }
+            }
+        }
+
         //==============================================================================================
     }
 }
