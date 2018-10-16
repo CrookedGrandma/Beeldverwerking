@@ -125,7 +125,7 @@ namespace INFOIBV {
         //    }
         //}
 
-        private List<Coord> Fourier(List<Coord> boundary, int amount_of_descriptors, int sample_density = 1, double stepsize = 1.0) {
+        private List<Coord> Fourier(List<Coord> boundary, int amount_of_descriptors = -1, int sample_density = 1, double stepsize = 1.0) {
             int N = boundary.Count / sample_density;
             if (amount_of_descriptors < 0) amount_of_descriptors = N;
             Complex etopowerix(double x) {
