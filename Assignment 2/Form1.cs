@@ -91,7 +91,8 @@ namespace INFOIBV {
             //ValueCount(true);
 
             // (6) Boundary trace
-            PaintList(fourier(Boundary(),-1));
+            //PaintList(Fourier(Boundary(), 50));
+            PaintList(Boundary());
 
             //==========================================================================================
 
@@ -124,19 +125,15 @@ namespace INFOIBV {
         //    }
         //}
 
-        private List<Coord> fourier(List<Coord> boundary, int amount_of_descriptors, int sample_density = 1, double stepsize = 0.5)
-        {
-            if (amount_of_descriptors < 0) amount_of_descriptors = boundary.Count;
+        private List<Coord> Fourier(List<Coord> boundary, int amount_of_descriptors, int sample_density = 1, double stepsize = 1.0) {
             int N = boundary.Count / sample_density;
-            Complex etopowerix(double x)
-            {
+            if (amount_of_descriptors < 0) amount_of_descriptors = N;
+            Complex etopowerix(double x) {
                 return new Complex(Math.Cos(x), Math.Sin(x));
             }
-            Complex Z(double k)
-            {
+            Complex Z(double k) {
                 Complex accum = new Complex();
-                for (int m = 0; m < N; m++)
-                {
+                for (int m = 0; m < N; m++) {
                     accum += new Complex(boundary[m].X, boundary[m].Y) * etopowerix((-2.0 * Math.PI * m * k) / (double)N);
                 }
                 return accum * new Complex(1 / (float)N, 0);
@@ -146,15 +143,12 @@ namespace INFOIBV {
             double max = 0;
             Complex newest = new Complex();
             List<Complex> Zs = new List<Complex>();
-            for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++)
-            {
+            for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
                 newest = Z(k);
-                if(max < newest.R || newest.R < -max)
-                {
+                if (max < newest.R || newest.R < -max) {
                     max = Math.Abs(newest.R);
                 }
-                if(max < newest.I || newest.I < -max)
-                {
+                if (max < newest.I || newest.I < -max) {
                     max = Math.Abs(newest.I);
                 }
                 Zs.Add(newest);
@@ -164,33 +158,28 @@ namespace INFOIBV {
             int width = pictureBox2.Width;
             int height = pictureBox2.Height;
             Bitmap OutputImage2 = new Bitmap(width, height);
-            for(int x = 0; x < width; x++)
-            {
-                for(int y = 0; y < height; y++)
-                {
-                    OutputImage2.SetPixel(x, y, Color.White); 
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    OutputImage2.SetPixel(x, y, Color.White);
                 }
             }
-            for(int z = 0; z < Zs.Count; z++)
-            {
-                int x = (int)((width / (double)(Zs.Count)) * (z+0.5));
-                int yr = (int)(((Zs[z].R) / max) * (double)((height / 2)-1));
+            for (int z = 0; z < Zs.Count; z++) {
+                int x = (int)((width / (double)(Zs.Count)) * (z + 0.5));
+                int yr = (int)(((Zs[z].R) / max) * (double)((height / 2) - 1));
                 int dirr = -Math.Sign(yr);
-                for(int y = yr; y != 0; y+= dirr)
-                {
-                    OutputImage2.SetPixel(x, y+height/2, Color.Blue);
+                for (int y = yr; y != 0; y += dirr) {
+                    OutputImage2.SetPixel(x, y + height / 2, Color.Blue);
                 }
-                int yi = (int)(((Zs[z].I) / max) * (double)((height / 2)-1));
+                int yi = (int)(((Zs[z].I) / max) * (double)((height / 2) - 1));
                 int diri = -Math.Sign(yi);
-                for (int y = yi; y != 0; y += diri)
-                {
+                for (int y = yi; y != 0; y += diri) {
                     Color temp = OutputImage2.GetPixel(x, y + height / 2);
-                    temp = Color.FromArgb(255, 0, 255-temp.R);
-                    OutputImage2.SetPixel(x, y+height/2, temp);
+                    temp = Color.FromArgb(255, 0, 255 - temp.R);
+                    OutputImage2.SetPixel(x, y + height / 2, temp);
                 }
                 Color temp2 = OutputImage2.GetPixel(x, 0 / 2);
-                temp2 = Color.FromArgb(255, 0, 255-temp2.R);
-                OutputImage2.SetPixel(x, height/2, temp2);
+                temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
+                OutputImage2.SetPixel(x, height / 2, temp2);
             }
             pictureBox2.Image = (Image)OutputImage2;
 
@@ -198,19 +187,17 @@ namespace INFOIBV {
 
             //create reconstruction
             List<Coord> retlist = new List<Coord>();
-            for(double m = 0.0; m < N; m+= stepsize)
-            {
+            for (double m = 0.0; m < N; m += stepsize) {
                 Complex accum = new Complex();
-                for(int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors/2); k++)
-                {
-                    accum += Zs[k+ (amount_of_descriptors / 2)] * etopowerix(2.0 * Math.PI * m * k / N);
+                for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
+                    accum += Zs[k + (amount_of_descriptors / 2)] * etopowerix(2.0 * Math.PI * m * k / N);
                 }
                 retlist.Add(new Coord(ClampX((int)accum.R), ClampY((int)accum.I)));
             }
             return retlist;
         }
-        
-        
+
+
 
         private void Erosion(SEP[] structure) {
             if (IsBinary()) {
@@ -248,8 +235,7 @@ namespace INFOIBV {
                 }
             }
             RefreshImage();
-            if (InputImage2 != null)
-            {
+            if (InputImage2 != null) {
                 Min();
             }
         }
@@ -290,8 +276,7 @@ namespace INFOIBV {
                 }
             }
             RefreshImage();
-            if (InputImage2 != null)
-            {
+            if (InputImage2 != null) {
                 Max();
             }
         }
@@ -368,7 +353,10 @@ namespace INFOIBV {
                             history.Add(current);
                             int value = -1;
                             Coord next = last.Clone();
+                            int counter = 0;
                             while (value != 0) {
+                                counter++;
+                                if (counter > 8) return history;
                                 next = NextCoord(next, current);
                                 if (ClampX(next.X) == next.X && ClampY(next.Y) == next.Y) value = Image[next.X, next.Y].R;
                             }
@@ -538,45 +526,28 @@ namespace INFOIBV {
             }
         }
 
-        private class Complex
-        {
-            double r;
-            double i;
-            public Complex()
-            {
-                r = 0;
-                i = 0;
+        private class Complex {
+            public Complex() {
+                R = 0;
+                I = 0;
             }
-            public Complex(double r, double i)
-            {
-                this.r = r;
-                this.i = i;
+            public Complex(double r, double i) {
+                this.R = r;
+                this.I = i;
             }
-            public double R
-            {
-                get { return r; }
-                set { r = value; }
+            public double R { get; set; }
+            public double I { get; set; }
+            public override string ToString() {
+                return R + " + " + I + "i";
             }
-            public double I
-            {
-                get { return i; }
-                set { i = value; }
+            public static Complex operator +(Complex a, Complex b) {
+                return new Complex(a.R + b.R, a.I + b.I);
             }
-            public override string ToString()
-            {
-                return r + " + " + i + "i";
+            public static Complex operator -(Complex a, Complex b) {
+                return new Complex(a.R - b.R, a.I - b.I);
             }
-            public static Complex operator +(Complex a, Complex b)
-            {
-                return new Complex(a.r + b.r, a.i + b.i);
-            } 
-            public static Complex operator -(Complex a, Complex b)
-            {
-                return new Complex(a.r - b.r, a.i - b.i);
-            }
-            public static Complex operator *(Complex a, Complex b)
-            {
-                return new Complex(a.r * b.r - a.i * b.i, a.r * b.i + a.i * b.r);
+            public static Complex operator *(Complex a, Complex b) {
+                return new Complex(a.R * b.R - a.I * b.I, a.R * b.I + a.I * b.R);
             }
         }
 
@@ -584,32 +555,24 @@ namespace INFOIBV {
         /// A point in a structuring element, containing a coordinate and a value
         /// </summary>
         private struct SEP {
-            private Coord c;
-            private int v;
             public SEP(Coord c, int v) {
-                this.c = c;
-                this.v = v;
+                this.C = c;
+                this.V = v;
             }
             public SEP(int x, int y, int v) {
-                this.c = new Coord(x, y);
-                this.v = v;
+                this.C = new Coord(x, y);
+                this.V = v;
             }
-            public Coord C {
-                get { return c; }
-                set { c = value; }
-            }
-            public int V {
-                get { return v; }
-                set { v = value; }
-            }
+            public Coord C { get; set; }
+            public int V { get; set; }
             public SEP Mirrored {
                 get {
-                    return new SEP(-c.X, -c.Y, v);
+                    return new SEP(-C.X, -C.Y, V);
                 }
             }
         }
 
-        
+
 
         //==============================================================================================
     }
