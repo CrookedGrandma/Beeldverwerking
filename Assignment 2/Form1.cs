@@ -8,9 +8,12 @@ namespace INFOIBV {
     public partial class INFOIBV : Form {
         private Bitmap InputImage1, InputImage2, OutputImage;
         private Color[,] Image, Image2, ImageOut;
+        private bool multipleDescriptors = false, ran = false;
+        private Random rnd;
 
         public INFOIBV() {
             InitializeComponent();
+            rnd = new Random();
         }
 
         private void LoadImage1Button_Click(object sender, EventArgs e) {
@@ -23,14 +26,18 @@ namespace INFOIBV {
                     InputImage1.Size.Height > 512 || InputImage1.Size.Width > 512)  // Dimension check
                     MessageBox.Show("Error in image dimensions (have to be > 0 and <= 512)");
                 else {
-                    pictureBox1.Image = (Image)InputImage1;                         // Display input image
-                    Image = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
-                    // Copy input Bitmap to array            
-                    for (int x = 0; x < InputImage1.Size.Width; x++) {
-                        for (int y = 0; y < InputImage1.Size.Height; y++) {
-                            Image[x, y] = InputImage1.GetPixel(x, y);
-                        }
-                    }
+                    pictureBox1.Image = (Image)InputImage1;
+                    LoadImage1();
+                }
+            }
+        }
+
+        private void LoadImage1() {
+            Image = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
+            // Copy input Bitmap to array            
+            for (int x = 0; x < InputImage1.Size.Width; x++) {
+                for (int y = 0; y < InputImage1.Size.Height; y++) {
+                    Image[x, y] = InputImage1.GetPixel(x, y);
                 }
             }
         }
@@ -65,10 +72,11 @@ namespace INFOIBV {
         }
 
         private void applyButton_Click(object sender, EventArgs e) {
+            LoadImage1();                                                               // Load image into array
             if (InputImage1 == null) return;                                            // Get out if no input image
             if (OutputImage != null) OutputImage.Dispose();                             // Reset output image
             OutputImage = new Bitmap(InputImage1.Size.Width, InputImage1.Size.Height);  // Create new output image
-            ImageOut = new Color[InputImage1.Size.Width, InputImage1.Size.Height];
+            ImageOut = Image;
 
             //==========================================================================================
 
@@ -91,8 +99,13 @@ namespace INFOIBV {
             //ValueCount(true);
 
             // (6) Boundary trace
-            PaintList(Fourier(Boundary(), 50));
             //PaintList(Boundary());
+
+            // (7) Fourier
+            //Fourier(Boundary(), 50);
+
+            // (Bonus 1) Fourier with multiple descriptor amounts
+            FourierMultiple(Boundary());
 
             //==========================================================================================
 
@@ -103,7 +116,7 @@ namespace INFOIBV {
                 }
             }
 
-            pictureBoxOut.Image = (Image)OutputImage;                       // Display output image
+            pictureBoxOut.Image = OutputImage;                       // Display output image
         }
 
         private void saveButton_Click(object sender, EventArgs e) {
@@ -298,7 +311,7 @@ namespace INFOIBV {
             return new List<Coord>();
         }
 
-        private List<Coord> Fourier(List<Coord> boundary, int amount_of_descriptors = -1, int sample_density = 1, float stepsize = 1f) {
+        private void Fourier(List<Coord> boundary, int amount_of_descriptors = -1, int sample_density = 1, float stepsize = 1f) {
             int N = boundary.Count / sample_density;
             if (amount_of_descriptors < 0) amount_of_descriptors = N;
 
@@ -309,7 +322,7 @@ namespace INFOIBV {
             Complex Z(float k) {
                 Complex accum = new Complex();
                 for (int m = 0; m < N; m++) {
-                    accum += new Complex(boundary[m].X, boundary[m].Y) * etopowerix((-2f * (float)Math.PI * m * k) / (float)N);
+                    accum += new Complex(boundary[m].X, boundary[m].Y) * etopowerix((-2f * (float)Math.PI * m * k) / N);
                 }
                 return accum * new Complex(1 / (float)N, 0);
             }
@@ -318,7 +331,7 @@ namespace INFOIBV {
             float max = 0;
             Complex newest = new Complex();
             List<Complex> Zs = new List<Complex>();
-            for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
+            for (int k = -amount_of_descriptors / 2; k <= amount_of_descriptors / 2; k++) {
                 newest = Z(k);
                 if (max < newest.R || newest.R < -max) {
                     max = Math.Abs(newest.R);
@@ -330,44 +343,62 @@ namespace INFOIBV {
             }
 
             // Create a graph in the middle pictureBox
-            int width = pictureBox2.Width;
-            int height = pictureBox2.Height;
-            Bitmap OutputImage2 = new Bitmap(width, height);
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    OutputImage2.SetPixel(x, y, Color.White);
+            if (!multipleDescriptors) {
+                int width = pictureBox2.Width;
+                int height = pictureBox2.Height;
+                Bitmap GraphImage = new Bitmap(width, height);
+                for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < height; y++) {
+                        GraphImage.SetPixel(x, y, Color.White);
+                    }
                 }
+                for (int z = 0; z < Zs.Count; z++) {
+                    int x = (int)((width / (float)Zs.Count) * (z + 0.5));
+                    int yr = (int)((Zs[z].R / max) * ((height / 2) - 1));
+                    int dirr = -Math.Sign(yr);
+                    for (int y = yr; y != 0; y += dirr) {
+                        GraphImage.SetPixel(x, y + height / 2, Color.Blue);
+                    }
+                    int yi = (int)(((Zs[z].I) / max) * ((height / 2) - 1));
+                    int diri = -Math.Sign(yi);
+                    for (int y = yi; y != 0; y += diri) {
+                        Color temp = GraphImage.GetPixel(x, y + height / 2);
+                        temp = Color.FromArgb(255, 0, 255 - temp.R);
+                        GraphImage.SetPixel(x, y + height / 2, temp);
+                    }
+                    Color temp2 = GraphImage.GetPixel(x, 0 / 2);
+                    temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
+                    GraphImage.SetPixel(x, height / 2, temp2);
+                }
+                pictureBox2.Image = GraphImage;
             }
-            for (int z = 0; z < Zs.Count; z++) {
-                int x = (int)((width / (float)(Zs.Count)) * (z + 0.5));
-                int yr = (int)(((Zs[z].R) / max) * (float)((height / 2) - 1));
-                int dirr = -Math.Sign(yr);
-                for (int y = yr; y != 0; y += dirr) {
-                    OutputImage2.SetPixel(x, y + height / 2, Color.Blue);
-                }
-                int yi = (int)(((Zs[z].I) / max) * (float)((height / 2) - 1));
-                int diri = -Math.Sign(yi);
-                for (int y = yi; y != 0; y += diri) {
-                    Color temp = OutputImage2.GetPixel(x, y + height / 2);
-                    temp = Color.FromArgb(255, 0, 255 - temp.R);
-                    OutputImage2.SetPixel(x, y + height / 2, temp);
-                }
-                Color temp2 = OutputImage2.GetPixel(x, 0 / 2);
-                temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
-                OutputImage2.SetPixel(x, height / 2, temp2);
-            }
-            pictureBox2.Image = (Image)OutputImage2;
 
             // Create reconstruction
-            List<Coord> retlist = new List<Coord>();
-            for (float m = 0f; m < N; m += stepsize) {
-                Complex accum = new Complex();
-                for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
-                    accum += Zs[k + (amount_of_descriptors / 2)] * etopowerix(2f * (float)Math.PI * m * k / N);
-                }
-                retlist.Add(new Coord(ClampX((int)accum.R), ClampY((int)accum.I)));
+            MakeWhite();
+            int loops = 1, aod;
+            if (multipleDescriptors) {
+                loops = DescAmounts.List.Length + 1;
             }
-            return retlist;
+            for (int i = 0; i < loops; i++) {
+                List<Coord> retlist = new List<Coord>();
+                if (i == loops - 1) aod = amount_of_descriptors;
+                else aod = DescAmounts.List[i];
+                for (float m = 0f; m < N; m += stepsize) {
+                    Complex accum = new Complex();
+                    for (int k = -aod / 2; k <= aod / 2; k++) {
+                        accum += Zs[k + (amount_of_descriptors / 2)] * etopowerix(2f * (float)Math.PI * m * k / N);
+                    }
+                    retlist.Add(new Coord(ClampX((int)accum.R), ClampY((int)accum.I)));
+                }
+                if (i == loops - 1) PaintList(retlist, false);
+                else PaintList(retlist, RandColor(), false);
+            }
+        }
+
+        private void FourierMultiple(List<Coord> boundary, int sample_density = 1, float stepsize = 1f) {
+            multipleDescriptors = true;
+            Fourier(boundary, -1, sample_density, stepsize);
+            multipleDescriptors = false;
         }
 
         private void Threshold(int threshold) {
@@ -433,6 +464,17 @@ namespace INFOIBV {
             return Color.Black;
         }
 
+        private Color RandColor() {
+            int r = 0, g = 0, b = 0;
+            while ((r < 25 && g < 25 && b < 25) ||
+                    (r > 230 && g > 230 && b > 230)) {
+                r = rnd.Next(0, 256);
+                g = rnd.Next(0, 256);
+                b = rnd.Next(0, 256);
+            }
+            return Color.FromArgb(r, g, b);
+        }
+
         private void MakeBlack() {
             for (int x = 0; x < InputImage1.Size.Width; x++) {
                 for (int y = 0; y < InputImage1.Size.Height; y++) {
@@ -467,16 +509,24 @@ namespace INFOIBV {
             return current + vect;
         }
 
-        private void RefreshImage() {
-            Image = (Color[,])ImageOut.Clone();
-        }
-
-        private void PaintList(List<Coord> list) {
-            MakeWhite();
+        private void PaintList(List<Coord> list, bool reset = true) {
+            if (reset) MakeWhite();
             foreach (Coord c in list) {
                 ImageOut[c.X, c.Y] = Black();
             }
-            RefreshImage();
+            if (reset) RefreshImage();
+        }
+
+        private void PaintList(List<Coord> list, Color color, bool reset = true) {
+            if (reset) MakeWhite();
+            foreach (Coord c in list) {
+                ImageOut[c.X, c.Y] = color;
+            }
+            if (reset) RefreshImage();
+        }
+
+        private void RefreshImage() {
+            Image = (Color[,])ImageOut.Clone();
         }
 
         // Structs
@@ -573,7 +623,16 @@ namespace INFOIBV {
             }
         }
 
-
+        /// <summary>
+        /// A struct containing a list of descriptor amounts
+        /// </summary>
+        private struct DescAmounts {
+            public static int[] List {
+                get {
+                    return new int[6] { 1, 3, 5, 10, 50, 1000 };
+                }
+            }
+        }
 
         //==============================================================================================
     }
