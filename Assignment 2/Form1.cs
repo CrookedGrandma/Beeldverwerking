@@ -8,7 +8,7 @@ namespace INFOIBV {
     public partial class INFOIBV : Form {
         private Bitmap InputImage1, InputImage2, OutputImage;
         private Color[,] Image, Image2, ImageOut;
-        private bool multipleDescriptors = false;
+        private bool multipleDescriptors = false, ran = false;
         private Random rnd;
         private int max_desc_amount = 0;
 
@@ -83,14 +83,14 @@ namespace INFOIBV {
 
             // (1) Erosion/Dilation
             //Erosion(SquareStructElem(5));
-            Dilation(CircStructElem(5));
+            //Dilation(CircStructElem(5));
 
             // (2) Opening/Closing
             //ImgOpening(CircStructElem(5));
             //ImgClosing(CircStructElem(5));
 
             // (3) Complement
-            //Complement();
+            Complement();
 
             // (4) MIN/MAX
             //Min();
@@ -106,7 +106,7 @@ namespace INFOIBV {
             //Fourier(Boundary(), 50);
 
             // (Bonus 1) Fourier with multiple descriptor amounts
-            //FourierMultiple(Boundary(), 20);
+            FourierMultiple(Boundary(), 20);
 
             //==========================================================================================
 
@@ -140,47 +140,6 @@ namespace INFOIBV {
 
         private void Erosion(SEP[] structure) {
             if (IsBinary()) {
-                MakeWhite();
-                SEP[] mirror = Mirror(structure);
-                for (int x = 0; x < InputImage1.Size.Width; x++) {
-                    for (int y = 0; y < InputImage1.Size.Height; y++) {
-                        foreach (SEP sep in mirror) {
-                            int newX = x + sep.C.X;
-                            int newY = y + sep.C.Y;
-                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
-                                if (Image[newX, newY].R == 0) {
-                                    ImageOut[x, y] = Black();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else {
-                for (int x = 0; x < InputImage1.Size.Width; x++) {
-                    for (int y = 0; y < InputImage1.Size.Height; y++) {
-                        List<int> outs = new List<int>(structure.Length);
-                        foreach (SEP sep in structure) {
-                            int newX = x + sep.C.X;
-                            int newY = y + sep.C.Y;
-                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
-                                outs.Add(Image[newX, newY].R + sep.V);
-                            }
-                        }
-                        int output = ClampCol(outs.Min());
-                        ImageOut[x, y] = Color.FromArgb(output, output, output);
-                    }
-                }
-            }
-            RefreshImage();
-            if (InputImage2 != null) {
-                Max();
-            }
-        }
-
-        private void Dilation(SEP[] structure) {
-            if (IsBinary()) {
                 MakeBlack();
                 SEP[] mirror = Mirror(structure);
                 for (int x = 0; x < InputImage1.Size.Width; x++) {
@@ -206,7 +165,7 @@ namespace INFOIBV {
                             int newX = x + sep.C.X;
                             int newY = y + sep.C.Y;
                             if (ClampX(newX) == newX && ClampY(newY) == newY) {
-                                outs.Add(Image[newX, newY].R - sep.V);
+                                outs.Add(Image[newX, newY].R + sep.V);
                             }
                         }
                         int output = ClampCol(outs.Max());
@@ -217,6 +176,47 @@ namespace INFOIBV {
             RefreshImage();
             if (InputImage2 != null) {
                 Min();
+            }
+        }
+
+        private void Dilation(SEP[] structure) {
+            if (IsBinary()) {
+                MakeWhite();
+                SEP[] mirror = Mirror(structure);
+                for (int x = 0; x < InputImage1.Size.Width; x++) {
+                    for (int y = 0; y < InputImage1.Size.Height; y++) {
+                        foreach (SEP sep in mirror) {
+                            int newX = x + sep.C.X;
+                            int newY = y + sep.C.Y;
+                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
+                                if (Image[newX, newY].R == 0) {
+                                    ImageOut[x, y] = Black();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                for (int x = 0; x < InputImage1.Size.Width; x++) {
+                    for (int y = 0; y < InputImage1.Size.Height; y++) {
+                        List<int> outs = new List<int>(structure.Length);
+                        foreach (SEP sep in structure) {
+                            int newX = x + sep.C.X;
+                            int newY = y + sep.C.Y;
+                            if (ClampX(newX) == newX && ClampY(newY) == newY) {
+                                outs.Add(Image[newX, newY].R - sep.V);
+                            }
+                        }
+                        int output = ClampCol(outs.Min());
+                        ImageOut[x, y] = Color.FromArgb(output, output, output);
+                    }
+                }
+            }
+            RefreshImage();
+            if (InputImage2 != null) {
+                Max();
             }
         }
 
@@ -285,15 +285,15 @@ namespace INFOIBV {
             Coord last = new Coord(0, 1);
             for (int y = 0; y < InputImage1.Size.Height; y++) {
                 for (int x = 0; x < InputImage1.Size.Width; x++) {
-                    if (Image[x, y].R > 0) {
+                    if (Image[x, y].R == 0) {
                         current = new Coord(x, y);
                         List<Coord> history = new List<Coord>();
                         while (!(history.Count > 2 && (history[0] == last && history[1] == current))) { // Check end condition
                             history.Add(current);
-                            int value = 0;
+                            int value = -1;
                             Coord next = last.Clone();
                             int counter = 0;
-                            while (value == 0) {
+                            while (value != 0) {
                                 counter++;
                                 if (counter > 8) return history;
                                 next = NextCoord(next, current);
