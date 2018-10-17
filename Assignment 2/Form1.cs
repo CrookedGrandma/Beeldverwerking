@@ -1,6 +1,12 @@
-﻿using System;
+﻿/*
+ * Tijmen van ter Beek 5961564
+ * Kasper Nooteboom    5845866
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -11,10 +17,13 @@ namespace INFOIBV {
         private bool multipleDescriptors = false;
         private Random rnd;
         private int max_desc_amount = 0;
+        private StreamWriter writer;
 
         public INFOIBV() {
             InitializeComponent();
             rnd = new Random();
+            writer = new StreamWriter("../../result.txt");
+            writer.AutoFlush = true;
         }
 
         private void LoadImage1Button_Click(object sender, EventArgs e) {
@@ -83,11 +92,11 @@ namespace INFOIBV {
 
             // (1) Erosion/Dilation
             //Erosion(SquareStructElem(5));
-            Dilation(CircStructElem(5));
+            //Dilation(SquareStructElem(3));
 
             // (2) Opening/Closing
             //ImgOpening(CircStructElem(5));
-            //ImgClosing(CircStructElem(5));
+            //ImgClosing(CircStructElem(15));
 
             // (3) Complement
             //Complement();
@@ -106,7 +115,7 @@ namespace INFOIBV {
             //Fourier(Boundary(), 50);
 
             // (Bonus 1) Fourier with multiple descriptor amounts
-            //FourierMultiple(Boundary(), 20);
+            //FourierMultiple(Boundary());
 
             //==========================================================================================
 
@@ -311,8 +320,13 @@ namespace INFOIBV {
             return new List<Coord>();
         }
 
-        private void Fourier(List<Coord> boundary, int amount_of_descriptors = -1, int sample_density = 1, float stepsize = 1f) {
-            int N = boundary.Count / sample_density;
+        private void Fourier(List<Coord> boundary, int amount_of_descriptors = -1, int sample_density = 1, float stepsize = 0.5f) {
+            stepsize /= sample_density;
+            List<Coord> bound = new List<Coord>();
+            for (int i = 0; i < boundary.Count; i++) {
+                if (i % sample_density == 0) bound.Add(boundary[i]);
+            }
+            int N = bound.Count;
             if (amount_of_descriptors < 0) amount_of_descriptors = N;
 
             // Local methods for Fourier functionality
@@ -321,8 +335,8 @@ namespace INFOIBV {
             }
             Complex Z(float k) {
                 Complex accum = new Complex();
-                for (int m = 0; m < N; m++) {
-                    accum += new Complex(boundary[m].X, boundary[m].Y) * etopowerix((-2f * (float)Math.PI * m * k) / N);
+                for (int m = 0; m < bound.Count; m++) {
+                    accum += new Complex(bound[m].X, bound[m].Y) * etopowerix((-2f * (float)Math.PI * m * k) / N);
                 }
                 return accum * new Complex(1 / (float)N, 0);
             }
@@ -333,12 +347,14 @@ namespace INFOIBV {
             List<Complex> Zs = new List<Complex>();
             for (int k = -amount_of_descriptors / 2; k <= amount_of_descriptors / 2; k++) {
                 newest = Z(k);
-                if (max < newest.R || newest.R < -max) {
-                    max = Math.Abs(newest.R);
-                }
-                if (max < newest.I || newest.I < -max) {
-                    max = Math.Abs(newest.I);
-                }
+                float length = (float)Math.Sqrt(newest.I * newest.I + newest.R * newest.R);
+                if (max < length) max = length;
+                //if (max < newest.R || newest.R < -max) {
+                //    max = Math.Abs(newest.R);
+                //}
+                //if (max < newest.I || newest.I < -max) {
+                //    max = Math.Abs(newest.I);
+                //}
                 Zs.Add(newest);
             }
 
@@ -353,12 +369,16 @@ namespace INFOIBV {
             }
             for (int z = 0; z < Zs.Count; z++) {
                 int x = (int)((width / (float)Zs.Count) * (z + 0.5));
-                int yr = (int)((Zs[z].R / max) * ((height / 2) - 1));
+                int ymod = -(int)(((float)Math.Sqrt(Zs[z].I * Zs[z].I + Zs[z].R * Zs[z].R) / max) * ((height / 2) - 1));
+                for (int y = ymod; y != 0; y += 1) {
+                    GraphImage.SetPixel(x, y + height / 2, Black());
+                }
+                int yr = -(int)((Zs[z].R / max) * ((height / 2) - 1));
                 int dirr = -Math.Sign(yr);
                 for (int y = yr; y != 0; y += dirr) {
                     GraphImage.SetPixel(x, y + height / 2, Color.Blue);
                 }
-                int yi = (int)(((Zs[z].I) / max) * ((height / 2) - 1));
+                int yi = -(int)(((Zs[z].I) / max) * ((height / 2) - 1));
                 int diri = -Math.Sign(yi);
                 for (int y = yi; y != 0; y += diri) {
                     Color temp = GraphImage.GetPixel(x, y + height / 2);
@@ -369,7 +389,7 @@ namespace INFOIBV {
                 temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
                 GraphImage.SetPixel(x, height / 2, temp2);
             }
-                pictureBox2.Image = GraphImage;
+            pictureBox2.Image = GraphImage;
 
             // Create reconstruction
             MakeWhite();
@@ -395,8 +415,9 @@ namespace INFOIBV {
             }
         }
 
-        private void FourierMultiple(List<Coord> boundary, int max_amount, int sample_density = 1, float stepsize = 1f) {
+        private void FourierMultiple(List<Coord> boundary, int max_amount = -1, int sample_density = 1, float stepsize = 1f) {
             multipleDescriptors = true;
+            if (max_amount < 1) max_amount = boundary.Count;
             max_desc_amount = max_amount;
             Fourier(boundary, max_amount, sample_density, stepsize);
             multipleDescriptors = false;
