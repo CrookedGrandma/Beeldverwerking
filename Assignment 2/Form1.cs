@@ -10,6 +10,7 @@ namespace INFOIBV {
         private Color[,] Image, Image2, ImageOut;
         private bool multipleDescriptors = false, ran = false;
         private Random rnd;
+        private int max_desc_amount = 0;
 
         public INFOIBV() {
             InitializeComponent();
@@ -373,13 +374,15 @@ namespace INFOIBV {
             // Create reconstruction
             MakeWhite();
             int loops = 1, aod;
+            DescAmounts da = new DescAmounts();
             if (multipleDescriptors) {
-                loops = DescAmounts.List.Length + 1;
+                da = new DescAmounts(max_desc_amount);
+                loops = da.List.Length;
             }
             for (int i = 0; i < loops; i++) {
                 List<Coord> retlist = new List<Coord>();
-                if (i == loops - 1) aod = amount_of_descriptors;
-                else aod = DescAmounts.List[i];
+                if (!multipleDescriptors) aod = amount_of_descriptors;
+                else aod = da.List[i];
                 for (float m = 0f; m < N; m += stepsize) {
                     Complex accum = new Complex();
                     for (int k = -aod / 2; k <= aod / 2; k++) {
@@ -392,9 +395,10 @@ namespace INFOIBV {
             }
         }
 
-        private void FourierMultiple(List<Coord> boundary, int sample_density = 1, float stepsize = 1f) {
+        private void FourierMultiple(List<Coord> boundary, int max_amount, int sample_density = 1, float stepsize = 1f) {
             multipleDescriptors = true;
-            Fourier(boundary, -1, sample_density, stepsize);
+            max_desc_amount = max_amount;
+            Fourier(boundary, max_amount, sample_density, stepsize);
             multipleDescriptors = false;
         }
 
@@ -637,11 +641,18 @@ namespace INFOIBV {
         /// A struct containing a list of descriptor amounts
         /// </summary>
         private struct DescAmounts {
-            public static int[] List {
-                get {
-                    return new int[5] { 1, 3, 5, 10, 50 };
+            public DescAmounts(int max) {
+                List<int> amounts = new List<int>();
+                amounts.Add(1);
+                int a = 2;
+                while (a < max) {
+                    amounts.Add(a);
+                    a *= a;
                 }
+                amounts.Add(max);
+                List = amounts.ToArray();
             }
+            public int[] List { get; set; }
         }
 
         //==============================================================================================
