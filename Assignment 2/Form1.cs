@@ -76,7 +76,7 @@ namespace INFOIBV {
             if (InputImage1 == null) return;                                            // Get out if no input image
             if (OutputImage != null) OutputImage.Dispose();                             // Reset output image
             OutputImage = new Bitmap(InputImage1.Size.Width, InputImage1.Size.Height);  // Create new output image
-            ImageOut = Image;
+            ImageOut = (Color[,])Image.Clone();
 
             //==========================================================================================
 
