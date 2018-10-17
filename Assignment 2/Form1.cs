@@ -81,7 +81,7 @@ namespace INFOIBV {
             //==========================================================================================
 
             // (1) Erosion/Dilation
-            //Erosion(CircStructElem(5));
+            Erosion(CircStructElem(5));
             //Dilation(CircStructElem(5));
 
             // (2) Opening/Closing
@@ -105,7 +105,7 @@ namespace INFOIBV {
             //Fourier(Boundary(), 50);
 
             // (Bonus 1) Fourier with multiple descriptor amounts
-            FourierMultiple(Boundary());
+            //FourierMultiple(Boundary());
 
             //==========================================================================================
 
@@ -115,7 +115,6 @@ namespace INFOIBV {
                     OutputImage.SetPixel(x, y, ImageOut[x, y]);                // Set the pixel color at coordinate (x,y)
                 }
             }
-
             pictureBoxOut.Image = OutputImage;                       // Display output image
         }
 
@@ -174,9 +173,9 @@ namespace INFOIBV {
                 }
             }
             RefreshImage();
-            if (InputImage2 != null) {
-                Min();
-            }
+            //if (InputImage2 != null) {
+            //    Min();
+            //}
         }
 
         private void Dilation(SEP[] structure) {
@@ -215,9 +214,9 @@ namespace INFOIBV {
                 }
             }
             RefreshImage();
-            if (InputImage2 != null) {
-                Max();
-            }
+            //if (InputImage2 != null) {
+            //    Max();
+            //}
         }
 
         private void ImgOpening(SEP[] structure) {
