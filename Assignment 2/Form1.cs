@@ -81,7 +81,7 @@ namespace INFOIBV {
             //==========================================================================================
 
             // (1) Erosion/Dilation
-            Erosion(CircStructElem(5));
+            //Erosion(SquareStructElem(5));
             //Dilation(CircStructElem(5));
 
             // (2) Opening/Closing
@@ -425,6 +425,19 @@ namespace INFOIBV {
                     if (x * x + y * y <= r * r) {
                         seps.Add(new SEP(x, y, 0));
                     }
+                }
+            }
+            SEP[] sepsAR = seps.ToArray();
+            return sepsAR;
+        }
+
+        private SEP[] SquareStructElem(int size) {
+            if (size % 2 < 1) throw new Exception("Structuring element size not an odd number.");
+            List<SEP> seps = new List<SEP>();
+            int half = size / 2;
+            for (int x = -half; x < half; x++) {
+                for (int y = -half; y < half; y++) {
+                    seps.Add(new SEP(x, y, 0));
                 }
             }
             SEP[] sepsAR = seps.ToArray();
