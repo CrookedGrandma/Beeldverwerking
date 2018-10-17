@@ -91,8 +91,8 @@ namespace INFOIBV {
             //ValueCount(true);
 
             // (6) Boundary trace
-            //PaintList(Fourier(Boundary(), 50));
-            PaintList(Boundary());
+            PaintList(Fourier(Boundary(), 50));
+            //PaintList(Boundary());
 
             //==========================================================================================
 
@@ -124,80 +124,6 @@ namespace INFOIBV {
         //        }
         //    }
         //}
-
-        private List<Coord> Fourier(List<Coord> boundary, int amount_of_descriptors = -1, int sample_density = 1, double stepsize = 1.0) {
-            int N = boundary.Count / sample_density;
-            if (amount_of_descriptors < 0) amount_of_descriptors = N;
-            Complex etopowerix(double x) {
-                return new Complex(Math.Cos(x), Math.Sin(x));
-            }
-            Complex Z(double k) {
-                Complex accum = new Complex();
-                for (int m = 0; m < N; m++) {
-                    accum += new Complex(boundary[m].X, boundary[m].Y) * etopowerix((-2.0 * Math.PI * m * k) / (double)N);
-                }
-                return accum * new Complex(1 / (float)N, 0);
-            }
-
-            //calc Zs
-            double max = 0;
-            Complex newest = new Complex();
-            List<Complex> Zs = new List<Complex>();
-            for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
-                newest = Z(k);
-                if (max < newest.R || newest.R < -max) {
-                    max = Math.Abs(newest.R);
-                }
-                if (max < newest.I || newest.I < -max) {
-                    max = Math.Abs(newest.I);
-                }
-                Zs.Add(newest);
-            }
-
-            //create graph
-            int width = pictureBox2.Width;
-            int height = pictureBox2.Height;
-            Bitmap OutputImage2 = new Bitmap(width, height);
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    OutputImage2.SetPixel(x, y, Color.White);
-                }
-            }
-            for (int z = 0; z < Zs.Count; z++) {
-                int x = (int)((width / (double)(Zs.Count)) * (z + 0.5));
-                int yr = (int)(((Zs[z].R) / max) * (double)((height / 2) - 1));
-                int dirr = -Math.Sign(yr);
-                for (int y = yr; y != 0; y += dirr) {
-                    OutputImage2.SetPixel(x, y + height / 2, Color.Blue);
-                }
-                int yi = (int)(((Zs[z].I) / max) * (double)((height / 2) - 1));
-                int diri = -Math.Sign(yi);
-                for (int y = yi; y != 0; y += diri) {
-                    Color temp = OutputImage2.GetPixel(x, y + height / 2);
-                    temp = Color.FromArgb(255, 0, 255 - temp.R);
-                    OutputImage2.SetPixel(x, y + height / 2, temp);
-                }
-                Color temp2 = OutputImage2.GetPixel(x, 0 / 2);
-                temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
-                OutputImage2.SetPixel(x, height / 2, temp2);
-            }
-            pictureBox2.Image = (Image)OutputImage2;
-
-
-
-            //create reconstruction
-            List<Coord> retlist = new List<Coord>();
-            for (double m = 0.0; m < N; m += stepsize) {
-                Complex accum = new Complex();
-                for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
-                    accum += Zs[k + (amount_of_descriptors / 2)] * etopowerix(2.0 * Math.PI * m * k / N);
-                }
-                retlist.Add(new Coord(ClampX((int)accum.R), ClampY((int)accum.I)));
-            }
-            return retlist;
-        }
-
-
 
         private void Erosion(SEP[] structure) {
             if (IsBinary()) {
@@ -372,6 +298,78 @@ namespace INFOIBV {
             return new List<Coord>();
         }
 
+        private List<Coord> Fourier(List<Coord> boundary, int amount_of_descriptors = -1, int sample_density = 1, float stepsize = 1f) {
+            int N = boundary.Count / sample_density;
+            if (amount_of_descriptors < 0) amount_of_descriptors = N;
+
+            // Local methods for Fourier functionality
+            Complex etopowerix(float x) {
+                return new Complex((float)Math.Cos(x), (float)Math.Sin(x));
+            }
+            Complex Z(float k) {
+                Complex accum = new Complex();
+                for (int m = 0; m < N; m++) {
+                    accum += new Complex(boundary[m].X, boundary[m].Y) * etopowerix((-2f * (float)Math.PI * m * k) / (float)N);
+                }
+                return accum * new Complex(1 / (float)N, 0);
+            }
+
+            // Calculate Zs
+            float max = 0;
+            Complex newest = new Complex();
+            List<Complex> Zs = new List<Complex>();
+            for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
+                newest = Z(k);
+                if (max < newest.R || newest.R < -max) {
+                    max = Math.Abs(newest.R);
+                }
+                if (max < newest.I || newest.I < -max) {
+                    max = Math.Abs(newest.I);
+                }
+                Zs.Add(newest);
+            }
+
+            // Create a graph in the middle pictureBox
+            int width = pictureBox2.Width;
+            int height = pictureBox2.Height;
+            Bitmap OutputImage2 = new Bitmap(width, height);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    OutputImage2.SetPixel(x, y, Color.White);
+                }
+            }
+            for (int z = 0; z < Zs.Count; z++) {
+                int x = (int)((width / (float)(Zs.Count)) * (z + 0.5));
+                int yr = (int)(((Zs[z].R) / max) * (float)((height / 2) - 1));
+                int dirr = -Math.Sign(yr);
+                for (int y = yr; y != 0; y += dirr) {
+                    OutputImage2.SetPixel(x, y + height / 2, Color.Blue);
+                }
+                int yi = (int)(((Zs[z].I) / max) * (float)((height / 2) - 1));
+                int diri = -Math.Sign(yi);
+                for (int y = yi; y != 0; y += diri) {
+                    Color temp = OutputImage2.GetPixel(x, y + height / 2);
+                    temp = Color.FromArgb(255, 0, 255 - temp.R);
+                    OutputImage2.SetPixel(x, y + height / 2, temp);
+                }
+                Color temp2 = OutputImage2.GetPixel(x, 0 / 2);
+                temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
+                OutputImage2.SetPixel(x, height / 2, temp2);
+            }
+            pictureBox2.Image = (Image)OutputImage2;
+
+            // Create reconstruction
+            List<Coord> retlist = new List<Coord>();
+            for (float m = 0f; m < N; m += stepsize) {
+                Complex accum = new Complex();
+                for (int k = -(amount_of_descriptors / 2); k <= (amount_of_descriptors / 2); k++) {
+                    accum += Zs[k + (amount_of_descriptors / 2)] * etopowerix(2f * (float)Math.PI * m * k / N);
+                }
+                retlist.Add(new Coord(ClampX((int)accum.R), ClampY((int)accum.I)));
+            }
+            return retlist;
+        }
+
         private void Threshold(int threshold) {
             for (int x = 0; x < InputImage1.Size.Width; x++) {
                 for (int y = 0; y < InputImage1.Size.Height; y++) {
@@ -484,6 +482,34 @@ namespace INFOIBV {
         // Structs
 
         /// <summary>
+        /// A simple container for a complex number in the form of a + bi
+        /// </summary>
+        private class Complex {
+            public Complex() {
+                R = 0;
+                I = 0;
+            }
+            public Complex(float r, float i) {
+                this.R = r;
+                this.I = i;
+            }
+            public float R { get; set; }
+            public float I { get; set; }
+            public override string ToString() {
+                return R + " + " + I + "i";
+            }
+            public static Complex operator +(Complex a, Complex b) {
+                return new Complex(a.R + b.R, a.I + b.I);
+            }
+            public static Complex operator -(Complex a, Complex b) {
+                return new Complex(a.R - b.R, a.I - b.I);
+            }
+            public static Complex operator *(Complex a, Complex b) {
+                return new Complex(a.R * b.R - a.I * b.I, a.R * b.I + a.I * b.R);
+            }
+        }
+
+        /// <summary>
         /// A simple coordinate pair, containing an x and y value
         /// </summary>
         private class Coord {
@@ -523,31 +549,6 @@ namespace INFOIBV {
             }
             public override string ToString() {
                 return "(" + x + ", " + y + ")";
-            }
-        }
-
-        private class Complex {
-            public Complex() {
-                R = 0;
-                I = 0;
-            }
-            public Complex(double r, double i) {
-                this.R = r;
-                this.I = i;
-            }
-            public double R { get; set; }
-            public double I { get; set; }
-            public override string ToString() {
-                return R + " + " + I + "i";
-            }
-            public static Complex operator +(Complex a, Complex b) {
-                return new Complex(a.R + b.R, a.I + b.I);
-            }
-            public static Complex operator -(Complex a, Complex b) {
-                return new Complex(a.R - b.R, a.I - b.I);
-            }
-            public static Complex operator *(Complex a, Complex b) {
-                return new Complex(a.R * b.R - a.I * b.I, a.R * b.I + a.I * b.R);
             }
         }
 
