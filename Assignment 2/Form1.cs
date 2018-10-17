@@ -89,7 +89,7 @@ namespace INFOIBV {
             //ImgClosing(CircStructElem(5));
 
             // (3) Complement
-            //Complement();
+            Complement();
 
             // (4) MIN/MAX
             //Min();
@@ -105,7 +105,7 @@ namespace INFOIBV {
             //Fourier(Boundary(), 50);
 
             // (Bonus 1) Fourier with multiple descriptor amounts
-            //FourierMultiple(Boundary());
+            FourierMultiple(Boundary(), 20);
 
             //==========================================================================================
 
@@ -173,9 +173,9 @@ namespace INFOIBV {
                 }
             }
             RefreshImage();
-            //if (InputImage2 != null) {
-            //    Min();
-            //}
+            if (InputImage2 != null) {
+                Min();
+            }
         }
 
         private void Dilation(SEP[] structure) {
@@ -214,9 +214,9 @@ namespace INFOIBV {
                 }
             }
             RefreshImage();
-            //if (InputImage2 != null) {
-            //    Max();
-            //}
+            if (InputImage2 != null) {
+                Max();
+            }
         }
 
         private void ImgOpening(SEP[] structure) {
@@ -342,35 +342,33 @@ namespace INFOIBV {
             }
 
             // Create a graph in the middle pictureBox
-            if (!multipleDescriptors) {
-                int width = pictureBox2.Width;
-                int height = pictureBox2.Height;
-                Bitmap GraphImage = new Bitmap(width, height);
-                for (int x = 0; x < width; x++) {
-                    for (int y = 0; y < height; y++) {
-                        GraphImage.SetPixel(x, y, Color.White);
-                    }
+            int width = pictureBox2.Width;
+            int height = pictureBox2.Height;
+            Bitmap GraphImage = new Bitmap(width, height);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    GraphImage.SetPixel(x, y, Color.White);
                 }
-                for (int z = 0; z < Zs.Count; z++) {
-                    int x = (int)((width / (float)Zs.Count) * (z + 0.5));
-                    int yr = (int)((Zs[z].R / max) * ((height / 2) - 1));
-                    int dirr = -Math.Sign(yr);
-                    for (int y = yr; y != 0; y += dirr) {
-                        GraphImage.SetPixel(x, y + height / 2, Color.Blue);
-                    }
-                    int yi = (int)(((Zs[z].I) / max) * ((height / 2) - 1));
-                    int diri = -Math.Sign(yi);
-                    for (int y = yi; y != 0; y += diri) {
-                        Color temp = GraphImage.GetPixel(x, y + height / 2);
-                        temp = Color.FromArgb(255, 0, 255 - temp.R);
-                        GraphImage.SetPixel(x, y + height / 2, temp);
-                    }
-                    Color temp2 = GraphImage.GetPixel(x, 0 / 2);
-                    temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
-                    GraphImage.SetPixel(x, height / 2, temp2);
-                }
-                pictureBox2.Image = GraphImage;
             }
+            for (int z = 0; z < Zs.Count; z++) {
+                int x = (int)((width / (float)Zs.Count) * (z + 0.5));
+                int yr = (int)((Zs[z].R / max) * ((height / 2) - 1));
+                int dirr = -Math.Sign(yr);
+                for (int y = yr; y != 0; y += dirr) {
+                    GraphImage.SetPixel(x, y + height / 2, Color.Blue);
+                }
+                int yi = (int)(((Zs[z].I) / max) * ((height / 2) - 1));
+                int diri = -Math.Sign(yi);
+                for (int y = yi; y != 0; y += diri) {
+                    Color temp = GraphImage.GetPixel(x, y + height / 2);
+                    temp = Color.FromArgb(255, 0, 255 - temp.R);
+                    GraphImage.SetPixel(x, y + height / 2, temp);
+                }
+                Color temp2 = GraphImage.GetPixel(x, 0 / 2);
+                temp2 = Color.FromArgb(255, 0, 255 - temp2.R);
+                GraphImage.SetPixel(x, height / 2, temp2);
+            }
+                pictureBox2.Image = GraphImage;
 
             // Create reconstruction
             MakeWhite();
@@ -641,7 +639,7 @@ namespace INFOIBV {
         private struct DescAmounts {
             public static int[] List {
                 get {
-                    return new int[6] { 1, 3, 5, 10, 50, 1000 };
+                    return new int[5] { 1, 3, 5, 10, 50 };
                 }
             }
         }
