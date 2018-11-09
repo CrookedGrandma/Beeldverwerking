@@ -167,13 +167,12 @@ namespace INFOIBV {
         }
 
         private void Edges() {
-            float[,] matrix = PrewittHorizontal();
-            float[,] altmatrix = PrewittVertical();
-            int size = matrix.GetLength(0);
+            float[,] hmatrix = SobelLargeHorizontal();
+            float[,] vmatrix = SobelLargeVertical();
+            int size = hmatrix.GetLength(0);
             int radius = size / 2;
             int width = InputImage.Size.Width;
             int height = InputImage.Size.Height;
-            int[,] tempOutput = new int[width, height];
             int xrange = width - 1;
             int yrange = height - 1;
             for (int x = 0; x < width; x++) {
@@ -184,15 +183,15 @@ namespace INFOIBV {
                         for (int v = y - radius; v <= y + radius; v++) {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
                             int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
-                            output1 += Image[eu, ev] * matrix[u - x + radius, v - y + radius];
-                            output2 += Image[eu, ev] * altmatrix[u - x + radius, v - y + radius];
+                            output1 += Image[eu, ev] * hmatrix[u - x + radius, v - y + radius];
+                            output2 += Image[eu, ev] * vmatrix[u - x + radius, v - y + radius];
                         }
                     }
-                    int op = (int)Math.Sqrt(output1 * output1 + output2 * output2);
-                    if (op > 255) { op = 255; }
+                    int op = ClampCol((int)Math.Sqrt(output1 * output1 + output2 * output2));
                     ImageOut[x, y] = op;
                 }
             }
+            Contrast();
             RefreshImage();
         }
 
