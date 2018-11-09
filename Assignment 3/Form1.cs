@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace INFOIBV {
     public partial class INFOIBV : Form {
         private Bitmap InputImage, OutputImage;
-        private Color[,] Image, ImageOut;
+        private Color[,] ImageC, ImageOutC;
+        private int[,] Image, ImageOut;
 
         public INFOIBV() {
             InitializeComponent();
@@ -31,11 +33,11 @@ namespace INFOIBV {
         }
 
         private void LoadImage() {
-            Image = new Color[InputImage.Size.Width, InputImage.Size.Height];
+            ImageC = new Color[InputImage.Size.Width, InputImage.Size.Height];
             // Copy input Bitmap to array            
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Image[x, y] = InputImage.GetPixel(x, y);
+                    ImageC[x, y] = InputImage.GetPixel(x, y);
                 }
             }
         }
@@ -45,29 +47,34 @@ namespace INFOIBV {
             if (InputImage == null) return;                                             // Get out if no input image
             if (OutputImage != null) OutputImage.Dispose();                             // Reset output image
             OutputImage = new Bitmap(InputImage.Size.Width, InputImage.Size.Height);    // Create new output image
-            ImageOut = (Color[,])Image.Clone();
+            ImageOutC = (Color[,])ImageC.Clone();
 
             // Copy input Bitmap to array            
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Image[x, y] = InputImage.GetPixel(x, y);                            // Set pixel color in array at (x,y)
+                    ImageC[x, y] = InputImage.GetPixel(x, y);                            // Set pixel color in array at (x,y)
                 }
             }
+            Image = Grayscale();
+            ImageOut = (int[,])Image.Clone();
 
             //==========================================================================================
             // TODO: include here your own code
-            
+            Contrast();
+            Linear(GaussianKernel(5, 0.3f));
+            Edges();
+            BernsenThreshold(5, 40);
 
             //==========================================================================================
 
             // Copy array to output Bitmap
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    OutputImage.SetPixel(x, y, ImageOut[x, y]);             // Set the pixel color at coordinate (x,y)
+                    int c = ImageOut[x, y];
+                    OutputImage.SetPixel(x, y, Color.FromArgb(c, c, c));
                 }
             }
-
-            pictureBox2.Image = (Image)OutputImage;                         // Display output image
+            pictureBox2.Image = (Image)OutputImage;
         }
 
         private void saveButton_Click(object sender, EventArgs e) {
@@ -79,69 +86,67 @@ namespace INFOIBV {
         //==============================================================================================
         // Filter functions
 
+        //private void template() {
+        //    for (int x = 0; x < InputImage.Size.Width; x++) {
+        //        for (int y = 0; y < InputImage.Size.Height; y++) {
+        //            int c = Image[x, y];
+        //            ImageOut[x, y] = c;
+        //        }
+        //    }
+        //}
+
+        private int[,] Grayscale() {
+            int[,] Gray = new int[InputImage.Size.Width, InputImage.Size.Height];
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    Color pixelColor = ImageC[x, y];
+                    int gray = (pixelColor.R + pixelColor.G + pixelColor.B) / 3;
+                    Gray[x, y] = gray;
+                }
+            }
+            return Gray;
+        }
+
         private void Negative() {
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Color pixelColor = Image[x, y];
-                    Color updatedColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B);
-                    ImageOut[x, y] = updatedColor;
-                }
-            }
-            RefreshImage();
-        }
-
-        private void Grayscale() {
-            for (int x = 0; x < InputImage.Size.Width; x++) {
-                for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Color pixelColor = Image[x, y];
-                    int gray = (pixelColor.R + pixelColor.G + pixelColor.B) / 3;
-                    Color updatedColor = Color.FromArgb(gray, gray, gray);
-                    ImageOut[x, y] = updatedColor;
+                    int pixelColor = Image[x, y];
+                    ImageOut[x, y] = 255 - pixelColor;
                 }
             }
             RefreshImage();
         }
 
         private void Contrast() {
-            int loR = 256, hiR = 0, loG = 256, hiG = 0, loB = 256, hiB = 0;
+            int low = 256, high = 0;
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Color pixelColor = Image[x, y];
-                    if (pixelColor.R < loR) loR = pixelColor.R;
-                    if (pixelColor.R > hiR) hiR = pixelColor.R;
-                    if (pixelColor.G < loG) loG = pixelColor.G;
-                    if (pixelColor.G > hiG) hiG = pixelColor.G;
-                    if (pixelColor.B < loB) loB = pixelColor.B;
-                    if (pixelColor.B > hiB) hiB = pixelColor.B;
+                    int pixelColor = Image[x, y];
+                    if (pixelColor < low) low = pixelColor;
+                    if (pixelColor > high) high = pixelColor;
                 }
             }
-            double rMult = 255.0 / (hiR - loR);
-            double gMult = 255.0 / (hiG - loG);
-            double bMult = 255.0 / (hiB - loB);
+            double mult = 255.0 / (high - low);
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Color pixelColor = Image[x, y];
-                    int r, g, b;
-                    if (hiR - loR > 0) r = (int)((pixelColor.R - loR) * rMult);
-                    else r = pixelColor.R;
-                    if (hiG - loG > 0) g = (int)((pixelColor.G - loG) * gMult);
-                    else g = pixelColor.G;
-                    if (hiB - loB > 0) b = (int)((pixelColor.B - loB) * bMult);
-                    else b = pixelColor.B;
-                    Color updatedColor = Color.FromArgb(r, g, b);
-                    ImageOut[x, y] = updatedColor;
+                    int pixelColor = Image[x, y];
+                    int c;
+                    if (high - low > 0) c = (int)((pixelColor - low) * mult);
+                    else c = pixelColor;
+                    ImageOut[x, y] = c;
                 }
             }
+            RefreshImage();
         }
 
-        private void Linear(float[,] matrix) {
-            int size = matrix.GetLength(0);
+        private void Linear(float[,] kernel) {
+            int size = kernel.GetLength(0);
             int radius = size / 2;
             int width = InputImage.Size.Width;
             int height = InputImage.Size.Height;
             int xrange = width - 1;
             int yrange = height - 1;
-            Color[,] database = (Color[,])Image.Clone();
+            int[,] database = (int[,])Image.Clone();
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
                     float output = 0;
@@ -149,17 +154,17 @@ namespace INFOIBV {
                         for (int v = y - radius; v <= y + radius; v++) {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
                             int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
-                            output += database[eu, ev].R * matrix[u - x + radius, v - y + radius];
+                            output += database[eu, ev] * kernel[u - x + radius, v - y + radius];
                         }
                     }
                     int op = (int)output;
-                    ImageOut[x, y] = Color.FromArgb(op, op, op);
+                    ImageOut[x, y] = op;
                 }
             }
+            RefreshImage();
         }
 
         private void Edges() {
-
             float[,] matrix = PrewittHorizontal();
             float[,] altmatrix = PrewittVertical();
             int size = matrix.GetLength(0);
@@ -177,15 +182,16 @@ namespace INFOIBV {
                         for (int v = y - radius; v <= y + radius; v++) {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
                             int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
-                            output1 += Image[eu, ev].R * matrix[u - x + radius, v - y + radius];
-                            output2 += Image[eu, ev].R * altmatrix[u - x + radius, v - y + radius];
+                            output1 += Image[eu, ev] * matrix[u - x + radius, v - y + radius];
+                            output2 += Image[eu, ev] * altmatrix[u - x + radius, v - y + radius];
                         }
                     }
                     int op = (int)Math.Sqrt(output1 * output1 + output2 * output2);
                     if (op > 255) { op = 255; }
-                    ImageOut[x, y] = Color.FromArgb(op, op, op);
+                    ImageOut[x, y] = op;
                 }
             }
+            RefreshImage();
         }
 
         private void Laplacian() {
@@ -206,7 +212,7 @@ namespace INFOIBV {
                         for (int v = y - radius; v <= y + radius; v++) {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
                             int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
-                            output += Image[eu, ev].R * matrix[u - x + radius, v - y + radius];
+                            output += Image[eu, ev] * matrix[u - x + radius, v - y + radius];
                         }
                     }
                     int op = (int)output;
@@ -226,14 +232,13 @@ namespace INFOIBV {
                     if (minimum == 0 && maximum == 0) multiply = 1;
                     else multiply = Math.Min(-127 / (float)minimum, 128 / (float)maximum);
                     op = 127 + (int)(op * multiply);
-                    ImageOut[x, y] = Color.FromArgb(op, op, op);
+                    ImageOut[x, y] = op;
                 }
             }
             Contrast();
         }
 
         private void SharpenEdges(int weight = 1) {
-
             float[,] matrix = LaplacianKernel();
             int size = matrix.GetLength(0);
             int radius = size / 2;
@@ -251,7 +256,7 @@ namespace INFOIBV {
                         for (int v = y - radius; v <= y + radius; v++) {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
                             int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
-                            output += Image[eu, ev].R * matrix[u - x + radius, v - y + radius];
+                            output += Image[eu, ev] * matrix[u - x + radius, v - y + radius];
                         }
                     }
                     int op = (int)output;
@@ -267,16 +272,17 @@ namespace INFOIBV {
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
                     int op = tempOutput[x, y];
-                    op = Image[x, y].R - weight * op;
+                    op = Image[x, y] - weight * op;
                     if (op > 255) {
                         op = 255;
                     }
                     if (op < 0) {
                         op = 0;
                     }
-                    ImageOut[x, y] = Color.FromArgb(op, op, op);
+                    ImageOut[x, y] = op;
                 }
             }
+            RefreshImage();
         }
 
         private void Median(int size) {
@@ -292,24 +298,56 @@ namespace INFOIBV {
                         for (int v = y - radius; v <= y + radius; v++) {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
                             int ev = Math.Abs(-Math.Abs(v - yrange) + yrange); //mirror at edges
-                            output[u - x + radius + (v - y + radius) * size] = Image[eu, ev].R;
+                            output[u - x + radius + (v - y + radius) * size] = Image[eu, ev];
                         }
                     }
                     Array.Sort(output);
                     int op = output[output.Length / 2];
-                    ImageOut[x, y] = Color.FromArgb(op, op, op);
+                    ImageOut[x, y] = op;
                 }
             }
+            RefreshImage();
         }
 
         private void Threshold(int threshold) {
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    Color pixelColor = Image[x, y];
-                    if (pixelColor.R < threshold) Image[x, y] = Color.FromArgb(0, 0, 0);
-                    else ImageOut[x, y] = Color.FromArgb(255, 255, 255);
+                    int pixelColor = Image[x, y];
+                    if (pixelColor < threshold) Image[x, y] = 0;
+                    else ImageOut[x, y] = 255;
                 }
             }
+            RefreshImage();
+        }
+
+        private void BernsenThreshold(int radius, int cmin) {
+            SEP[] seps = CircStructElem(radius * 2 + 1);
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    List<int> values = new List<int>();
+                    foreach (SEP sep in seps) {
+                        int posx = x + sep.C.X;
+                        if (posx < 0) continue;
+                        if (posx >= InputImage.Size.Width) continue;
+                        int posy = y + sep.C.Y;
+                        if (posy < 0) continue;
+                        if (posy >= InputImage.Size.Height) continue;
+                        values.Add(Image[posx, posy] + sep.V);
+                    }
+                    int min = 255, max = 0;
+                    foreach (int v in values) {
+                        if (v < min) min = v;
+                        if (v > max) max = v;
+                    }
+                    if (max - min < cmin) ImageOut[x, y] = 0;
+                    else {
+                        int Q = (min + max) / 2;
+                        if (Image[x, y] < Q) ImageOut[x, y] = 0;
+                        else ImageOut[x, y] = 255;
+                    }
+                }
+            }
+            RefreshImage();
         }
 
         private void Erosion(SEP[] structure) {
@@ -322,8 +360,8 @@ namespace INFOIBV {
                             int newX = x + sep.C.X;
                             int newY = y + sep.C.Y;
                             if (ClampX(newX) == newX && ClampY(newY) == newY) {
-                                if (Image[newX, newY].R == 0) {
-                                    ImageOut[x, y] = Black();
+                                if (Image[newX, newY] == 0) {
+                                    ImageOut[x, y] = 0;
                                     break;
                                 }
                             }
@@ -339,11 +377,11 @@ namespace INFOIBV {
                             int newX = x + sep.C.X;
                             int newY = y + sep.C.Y;
                             if (ClampX(newX) == newX && ClampY(newY) == newY) {
-                                outs.Add(Image[newX, newY].R + sep.V);
+                                outs.Add(Image[newX, newY] + sep.V);
                             }
                         }
                         int output = ClampCol(outs.Min());
-                        ImageOut[x, y] = Color.FromArgb(output, output, output);
+                        ImageOut[x, y] = output;
                     }
                 }
             }
@@ -360,8 +398,8 @@ namespace INFOIBV {
                             int newX = x + sep.C.X;
                             int newY = y + sep.C.Y;
                             if (ClampX(newX) == newX && ClampY(newY) == newY) {
-                                if (Image[newX, newY].R > 0) {
-                                    ImageOut[x, y] = White();
+                                if (Image[newX, newY] > 0) {
+                                    ImageOut[x, y] = 255;
                                     break;
                                 }
                             }
@@ -377,11 +415,11 @@ namespace INFOIBV {
                             int newX = x + sep.C.X;
                             int newY = y + sep.C.Y;
                             if (ClampX(newX) == newX && ClampY(newY) == newY) {
-                                outs.Add(Image[newX, newY].R - sep.V);
+                                outs.Add(Image[newX, newY] - sep.V);
                             }
                         }
                         int output = ClampCol(outs.Max());
-                        ImageOut[x, y] = Color.FromArgb(output, output, output);
+                        ImageOut[x, y] = output;
                     }
                 }
             }
@@ -398,11 +436,72 @@ namespace INFOIBV {
             Erosion(structure);
         }
 
+        private void RemoveEndPixels() {
+            SEP[] seps = SquareStructElem(3);
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    int blacks = 0;
+                    foreach (SEP sep in seps) {
+                        int posx = x + sep.C.X;
+                        if (posx < 0) continue;
+                        if (posx >= InputImage.Size.Width) continue;
+                        int posy = y + sep.C.Y;
+                        if (posy < 0) continue;
+                        if (posy >= InputImage.Size.Height) continue;
+                        if (Image[posx, posy] == 0) blacks++;
+                    }
+                    if (blacks > 7) ImageOut[x, y] = 0;
+                }
+            }
+            RefreshImage();
+        }
+
+        private void Thinning() {
+            HoM[] hitmiss = Golay();
+            foreach (HoM hom in hitmiss) {
+                for (int x = 0; x < InputImage.Size.Width; x++) {
+                    for (int y = 0; y < InputImage.Size.Height; y++) {
+                        foreach (SEP sep in hom.Fore) {
+                            int posx = x + sep.C.X;
+                            if (posx < 0) goto doemaarvolgendepixel;
+                            if (posx >= InputImage.Size.Width) goto doemaarvolgendepixel;
+                            int posy = y + sep.C.Y;
+                            if (posy < 0) goto doemaarvolgendepixel;
+                            if (posy >= InputImage.Size.Height) goto doemaarvolgendepixel;
+                            if (Image[posx, posy] == 0) goto doemaarvolgendepixel;
+                        }
+                        foreach (SEP sep in hom.Back) {
+                            int posx = x + sep.C.X;
+                            if (posx < 0) goto doemaarvolgendepixel;
+                            if (posx >= InputImage.Size.Width) goto doemaarvolgendepixel;
+                            int posy = y + sep.C.Y;
+                            if (posy < 0) goto doemaarvolgendepixel;
+                            if (posy >= InputImage.Size.Height) goto doemaarvolgendepixel;
+                            if (Image[posx, posy] > 0) goto doemaarvolgendepixel;
+                        }
+                        ImageOut[x, y] = 0;
+                        doemaarvolgendepixel:
+                        int thiswasnecessary;
+                    }
+                }
+                RefreshImage();
+            }
+        }
+
+        private void ConvergingEdgeFix() {
+            int[,] lastImage;
+            do {
+                lastImage = (int[,])Image.Clone();
+                RemoveEndPixels();
+                Thinning();
+            } while ()
+        }
+
         private int ValueCount(bool show) {
             List<int> values = new List<int>(256);
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    int pixelColor = Image[x, y].R;
+                    int pixelColor = Image[x, y];
                     if (!values.Contains(pixelColor)) values.Add(pixelColor);
                 }
             }
@@ -416,7 +515,7 @@ namespace INFOIBV {
             Coord last = new Coord(0, 1);
             for (int y = 0; y < InputImage.Size.Height; y++) {
                 for (int x = 0; x < InputImage.Size.Width; x++) {
-                    if (Image[x, y].R > 0) {
+                    if (Image[x, y] > 0) {
                         current = new Coord(x, y);
                         List<Coord> history = new List<Coord>();
                         while (!(history.Count > 2 && (history[0] == last && history[1] == current))) { // Check end condition
@@ -428,7 +527,7 @@ namespace INFOIBV {
                                 counter++;
                                 if (counter > 8) return history;
                                 next = NextCoord(next, current);
-                                if (ClampX(next.X) == next.X && ClampY(next.Y) == next.Y) value = Image[next.X, next.Y].R;
+                                if (ClampX(next.X) == next.X && ClampY(next.Y) == next.Y) value = Image[next.X, next.Y];
                             }
                             last = current.Clone();
                             current = next.Clone();
@@ -564,6 +663,22 @@ namespace INFOIBV {
             return new float[3, 3] { { 1, 0, -1 }, { 1, 0, -1 }, { 1, 0, -1 } };
         }
 
+        private float[,] SobelLargeHorizontal() {
+            return new float[5, 5] { { -0.25f, -0.2f, 0f, 0.2f, 0.25f },
+                                     { -0.4f, -0.5f, 0f, 0.5f, 0.4f },
+                                     { -0.5f, 1f, 0f, 1f, 0.5f },
+                                     { -0.4f, -0.5f, 0f, 0.5f, 0.4f },
+                                     { -0.25f, -0.2f, 0f, 0.2f, 0.25f } };
+        }
+
+        private float[,] SobelLargeVertical() {
+            return new float[5, 5] { { -0.25f, -0.4f, -0.5f, -0.4f, -0.25f },
+                                     { -0.2f, -0.5f, 1f, -0.5f, -0.2f },
+                                     { 0f, 0f, 0f, 0f, 0f },
+                                     { 0.2f, 0.5f, 1f, 0.5f, 0.2f},
+                                     { 0.25f, 0.4f, 0.5f, 0.4f, 0.25f } };
+        }
+
         // Structuring element functions
 
         private SEP[] FourNeigh3x3zero() {
@@ -596,6 +711,96 @@ namespace INFOIBV {
             }
             SEP[] sepsAR = seps.ToArray();
             return sepsAR;
+        }
+
+        private HoM[] Golay() {
+            HoM[] list = new HoM[8];
+
+            SEP[] L1f = new SEP[4];
+            L1f[0] = new SEP(0, 0, 0);
+            L1f[1] = new SEP(-1, 1, 0);
+            L1f[2] = new SEP(0, 1, 0);
+            L1f[3] = new SEP(1, 1, 0);
+            SEP[] L1b = new SEP[3];
+            L1b[0] = new SEP(-1, -1, 0);
+            L1b[1] = new SEP(0, -1, 0);
+            L1b[2] = new SEP(1, -1, 0);
+            list[0] = new HoM(L1f, L1b);
+
+            SEP[] L2f = new SEP[4];
+            L2f[0] = new SEP(-1, 0, 0);
+            L2f[1] = new SEP(0, 0, 0);
+            L2f[2] = new SEP(-1, 1, 0);
+            L2f[3] = new SEP(0, 1, 0);
+            SEP[] L2b = new SEP[2];
+            L2b[0] = new SEP(0, -1, 0);
+            L2b[1] = new SEP(1, 0, 0);
+            list[1] = new HoM(L2f, L2b);
+
+            SEP[] L3f = new SEP[4];
+            L3f[0] = new SEP(-1, -1, 0);
+            L3f[1] = new SEP(-1, 0, 0);
+            L3f[2] = new SEP(0, 0, 0);
+            L3f[3] = new SEP(-1, 1, 0);
+            SEP[] L3b = new SEP[3];
+            L3b[0] = new SEP(1, -1, 0);
+            L3b[1] = new SEP(1, 0, 0);
+            L3b[2] = new SEP(1, 1, 0);
+            list[2] = new HoM(L3f, L3b);
+
+            SEP[] L4f = new SEP[4];
+            L4f[0] = new SEP(-1, -1, 0);
+            L4f[1] = new SEP(0, -1, 0);
+            L4f[2] = new SEP(-1, 0, 0);
+            L4f[3] = new SEP(0, 0, 0);
+            SEP[] L4b = new SEP[2];
+            L4b[0] = new SEP(1, 0, 0);
+            L4b[1] = new SEP(0, 1, 0);
+            list[3] = new HoM(L4f, L4b);
+
+            SEP[] L5f = new SEP[4];
+            L5f[0] = new SEP(-1, -1, 0);
+            L5f[1] = new SEP(0, -1, 0);
+            L5f[2] = new SEP(1, -1, 0);
+            L5f[3] = new SEP(0, 0, 0);
+            SEP[] L5b = new SEP[3];
+            L5b[0] = new SEP(-1, 1, 0);
+            L5b[1] = new SEP(0, 1, 0);
+            L5b[2] = new SEP(1, 1, 0);
+            list[4] = new HoM(L5f, L5b);
+
+            SEP[] L6f = new SEP[4];
+            L6f[0] = new SEP(0, -1, 0);
+            L6f[1] = new SEP(1, -1, 0);
+            L6f[2] = new SEP(0, 0, 0);
+            L6f[3] = new SEP(1, 0, 0);
+            SEP[] L6b = new SEP[2];
+            L6b[0] = new SEP(-1, 0, 0);
+            L6b[1] = new SEP(0, 1, 0);
+            list[5] = new HoM(L6f, L6b);
+
+            SEP[] L7f = new SEP[4];
+            L7f[0] = new SEP(1, -1, 0);
+            L7f[1] = new SEP(0, 0, 0);
+            L7f[2] = new SEP(1, 0, 0);
+            L7f[3] = new SEP(1, 1, 0);
+            SEP[] L7b = new SEP[3];
+            L7b[0] = new SEP(-1, -1, 0);
+            L7b[1] = new SEP(-1, 0, 0);
+            L7b[2] = new SEP(-1, 1, 0);
+            list[6] = new HoM(L7f, L7b);
+
+            SEP[] L8f = new SEP[4];
+            L8f[0] = new SEP(0, 0, 0);
+            L8f[1] = new SEP(1, 0, 0);
+            L8f[2] = new SEP(0, 1, 0);
+            L8f[3] = new SEP(1, 1, 0);
+            SEP[] L8b = new SEP[2];
+            L8b[0] = new SEP(-1, 0, 0);
+            L8b[1] = new SEP(0, 1, 0);
+            list[7] = new HoM(L8f, L8b);
+
+            return list;
         }
 
         // Other supportive functions
@@ -637,7 +842,7 @@ namespace INFOIBV {
         private void MakeBlack() {
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    ImageOut[x, y] = Black();
+                    ImageOut[x, y] = 0;
                 }
             }
         }
@@ -645,7 +850,7 @@ namespace INFOIBV {
         private void MakeWhite() {
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
-                    ImageOut[x, y] = White();
+                    ImageOut[x, y] = 255;
                 }
             }
         }
@@ -671,12 +876,12 @@ namespace INFOIBV {
         private void PaintList(List<Coord> list, bool reset = true) {
             if (reset) MakeWhite();
             foreach (Coord c in list) {
-                ImageOut[c.X, c.Y] = Black();
+                ImageOut[c.X, c.Y] = 0;
             }
             if (reset) RefreshImage();
         }
 
-        private void PaintList(List<Coord> list, Color color, bool reset = true) {
+        private void PaintList(List<Coord> list, int color, bool reset = true) {
             if (reset) MakeWhite();
             foreach (Coord c in list) {
                 ImageOut[c.X, c.Y] = color;
@@ -684,8 +889,23 @@ namespace INFOIBV {
             if (reset) RefreshImage();
         }
 
+        private bool ArraysEqual(int[,] a, int[,] b) {
+
+        }
+
         private void RefreshImage() {
-            Image = (Color[,])ImageOut.Clone();
+            Image = (int[,])ImageOut.Clone();
+
+            // Copy array to output Bitmap
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    int c = ImageOut[x, y];
+                    OutputImage.SetPixel(x, y, Color.FromArgb(c, c, c));
+                }
+            }
+            pictureBox2.Image = (Image)OutputImage;
+
+            pictureBox2.Refresh();
         }
 
         // Structs
@@ -766,12 +986,12 @@ namespace INFOIBV {
         /// </summary>
         private struct SEP {
             public SEP(Coord c, int v) {
-                this.C = c;
-                this.V = v;
+                C = c;
+                V = v;
             }
             public SEP(int x, int y, int v) {
-                this.C = new Coord(x, y);
-                this.V = v;
+                C = new Coord(x, y);
+                V = v;
             }
             public Coord C { get; set; }
             public int V { get; set; }
@@ -783,21 +1003,15 @@ namespace INFOIBV {
         }
 
         /// <summary>
-        /// A struct containing a list of descriptor amounts
+        /// A simple Hit-or-Miss SEP pair, containing a fore- and background SEP
         /// </summary>
-        private struct DescAmounts {
-            public DescAmounts(int max) {
-                List<int> amounts = new List<int>();
-                amounts.Add(1);
-                int a = 2;
-                while (a < max) {
-                    amounts.Add(a);
-                    a *= a;
-                }
-                amounts.Add(max);
-                List = amounts.ToArray();
+        private struct HoM {
+            public HoM(SEP[] fore, SEP[] back) {
+                Fore = fore;
+                Back = back;
             }
-            public int[] List { get; set; }
+            public SEP[] Fore { get; set; }
+            public SEP[] Back { get; set; }
         }
 
         //==============================================================================================
