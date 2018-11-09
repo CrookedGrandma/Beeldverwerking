@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace INFOIBV {
@@ -28,7 +27,7 @@ namespace INFOIBV {
                     pictureBox1.Image = (Image)InputImage;                          // Display input image
                     LoadImage();
                 }
-                
+
             }
         }
 
@@ -64,6 +63,9 @@ namespace INFOIBV {
             Linear(GaussianKernel(5, 0.3f));
             Edges();
             BernsenThreshold(5, 40);
+            //ImgClosing(CircStructElem(5));
+            ConvergingEdgeFix();
+            MessageBox.Show("Done");
 
             //==========================================================================================
 
@@ -450,7 +452,7 @@ namespace INFOIBV {
                         if (posy >= InputImage.Size.Height) continue;
                         if (Image[posx, posy] == 0) blacks++;
                     }
-                    if (blacks > 7) ImageOut[x, y] = 0;
+                    if (blacks > 6) ImageOut[x, y] = 0;
                 }
             }
             RefreshImage();
@@ -480,7 +482,7 @@ namespace INFOIBV {
                             if (Image[posx, posy] > 0) goto doemaarvolgendepixel;
                         }
                         ImageOut[x, y] = 0;
-                        doemaarvolgendepixel:
+                    doemaarvolgendepixel:
                         int thiswasnecessary;
                     }
                 }
@@ -492,9 +494,9 @@ namespace INFOIBV {
             int[,] lastImage;
             do {
                 lastImage = (int[,])Image.Clone();
-                RemoveEndPixels();
                 Thinning();
-            } while (true);
+                RemoveEndPixels();
+            } while (!ArraysEqual(lastImage, Image));
         }
 
         private int ValueCount(bool show) {
@@ -704,8 +706,8 @@ namespace INFOIBV {
             if (size % 2 < 1) throw new Exception("Structuring element size not an odd number.");
             List<SEP> seps = new List<SEP>();
             int half = size / 2;
-            for (int x = -half; x < half; x++) {
-                for (int y = -half; y < half; y++) {
+            for (int x = -half; x <= half; x++) {
+                for (int y = -half; y <= half; y++) {
                     seps.Add(new SEP(x, y, 0));
                 }
             }
@@ -890,6 +892,11 @@ namespace INFOIBV {
         }
 
         private bool ArraysEqual(int[,] a, int[,] b) {
+            for (int x = 0; x < a.GetLength(0); x++) {
+                for (int y = 0; y < a.GetLength(1); y++) {
+                    if (a[x, y] != b[x, y]) return false;
+                }
+            }
             return true;
         }
 
