@@ -494,7 +494,7 @@ namespace INFOIBV {
                 lastImage = (int[,])Image.Clone();
                 RemoveEndPixels();
                 Thinning();
-            } while ()
+            } while (true);
         }
 
         private int ValueCount(bool show) {
@@ -890,7 +890,7 @@ namespace INFOIBV {
         }
 
         private bool ArraysEqual(int[,] a, int[,] b) {
-
+            return true;
         }
 
         private void RefreshImage() {
