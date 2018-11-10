@@ -36,13 +36,14 @@
             this.saveImageDialog = new System.Windows.Forms.SaveFileDialog();
             this.saveButton = new System.Windows.Forms.Button();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.functionBox = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
             // 
             // LoadImageButton
             // 
-            this.LoadImageButton.Location = new System.Drawing.Point(12, 12);
+            this.LoadImageButton.Location = new System.Drawing.Point(11, 27);
             this.LoadImageButton.Name = "LoadImageButton";
             this.LoadImageButton.Size = new System.Drawing.Size(98, 23);
             this.LoadImageButton.TabIndex = 0;
@@ -58,15 +59,15 @@
             // 
             // imageFileName
             // 
-            this.imageFileName.Location = new System.Drawing.Point(116, 14);
+            this.imageFileName.Location = new System.Drawing.Point(115, 29);
             this.imageFileName.Name = "imageFileName";
             this.imageFileName.ReadOnly = true;
-            this.imageFileName.Size = new System.Drawing.Size(316, 20);
+            this.imageFileName.Size = new System.Drawing.Size(299, 20);
             this.imageFileName.TabIndex = 1;
             // 
             // pictureBox1
             // 
-            this.pictureBox1.Location = new System.Drawing.Point(13, 45);
+            this.pictureBox1.Location = new System.Drawing.Point(12, 60);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(512, 512);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
@@ -75,7 +76,7 @@
             // 
             // applyButton
             // 
-            this.applyButton.Location = new System.Drawing.Point(478, 12);
+            this.applyButton.Location = new System.Drawing.Point(421, 27);
             this.applyButton.Name = "applyButton";
             this.applyButton.Size = new System.Drawing.Size(103, 23);
             this.applyButton.TabIndex = 3;
@@ -90,7 +91,7 @@
             // 
             // saveButton
             // 
-            this.saveButton.Location = new System.Drawing.Point(948, 11);
+            this.saveButton.Location = new System.Drawing.Point(947, 27);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(95, 23);
             this.saveButton.TabIndex = 4;
@@ -100,18 +101,31 @@
             // 
             // pictureBox2
             // 
-            this.pictureBox2.Location = new System.Drawing.Point(531, 45);
+            this.pictureBox2.Location = new System.Drawing.Point(530, 60);
             this.pictureBox2.Name = "pictureBox2";
             this.pictureBox2.Size = new System.Drawing.Size(512, 512);
             this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.pictureBox2.TabIndex = 5;
             this.pictureBox2.TabStop = false;
             // 
+            // functionBox
+            // 
+            this.functionBox.AutoSize = true;
+            this.functionBox.BackColor = System.Drawing.Color.Transparent;
+            this.functionBox.Font = new System.Drawing.Font("Arial", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.functionBox.Location = new System.Drawing.Point(530, 23);
+            this.functionBox.MaximumSize = new System.Drawing.Size(420, 0);
+            this.functionBox.Name = "functionBox";
+            this.functionBox.Size = new System.Drawing.Size(207, 32);
+            this.functionBox.TabIndex = 6;
+            this.functionBox.Text = "(active function)";
+            // 
             // INFOIBV
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1052, 576);
+            this.ClientSize = new System.Drawing.Size(1052, 587);
+            this.Controls.Add(this.functionBox);
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.saveButton);
             this.Controls.Add(this.applyButton);
@@ -139,7 +153,7 @@
         private System.Windows.Forms.SaveFileDialog saveImageDialog;
         private System.Windows.Forms.Button saveButton;
         private System.Windows.Forms.PictureBox pictureBox2;
-
+        private System.Windows.Forms.Label functionBox;
     }
 }
 

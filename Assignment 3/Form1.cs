@@ -9,9 +9,11 @@ namespace INFOIBV {
         private Bitmap InputImage, OutputImage;
         private Color[,] ImageC, ImageOutC;
         private int[,] Image, ImageOut;
+        private enum EdgeFixType { RemoveEndPixels, Thinning, Both };
 
         public INFOIBV() {
             InitializeComponent();
+            SetText("");
         }
 
         private void LoadImageButton_Click(object sender, EventArgs e) {
@@ -42,6 +44,10 @@ namespace INFOIBV {
         }
 
         private void applyButton_Click(object sender, EventArgs e) {
+            if (InputImage == null) {
+                SetText("Try loading an image first");
+                return;
+            }
             LoadImage();
             if (InputImage == null) return;                                             // Get out if no input image
             if (OutputImage != null) OutputImage.Dispose();                             // Reset output image
@@ -56,16 +62,18 @@ namespace INFOIBV {
             }
             Image = Grayscale();
             ImageOut = (int[,])Image.Clone();
+            RefreshImage();
 
             //==========================================================================================
             // TODO: include here your own code
             Contrast();
-            Linear(GaussianKernel(5, 0.3f));
-            Edges();
-            BernsenThreshold(5, 40);
+            Linear(GaussianKernel(5, 1f));
+            Edges(true);
+            MaxEntropyThreshold();
+            //BernsenThreshold(5, 40);
             //ImgClosing(CircStructElem(5));
-            ConvergingEdgeFix();
-            MessageBox.Show("Done");
+            ConvergingEdgeFix(EdgeFixType.Thinning);
+            SetText("Done");
 
             //==========================================================================================
 
@@ -98,6 +106,7 @@ namespace INFOIBV {
         //}
 
         private int[,] Grayscale() {
+            SetText("Converting to grayscale...");
             int[,] Gray = new int[InputImage.Size.Width, InputImage.Size.Height];
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
@@ -110,6 +119,7 @@ namespace INFOIBV {
         }
 
         private void Negative() {
+            SetText("Applying negative...");
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
                     int pixelColor = Image[x, y];
@@ -120,6 +130,7 @@ namespace INFOIBV {
         }
 
         private void Contrast() {
+            SetText("Increasing contrast...");
             int low = 256, high = 0;
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
@@ -142,6 +153,7 @@ namespace INFOIBV {
         }
 
         private void Linear(float[,] kernel) {
+            SetText("Applying linear filter...");
             int size = kernel.GetLength(0);
             int radius = size / 2;
             int width = InputImage.Size.Width;
@@ -166,9 +178,17 @@ namespace INFOIBV {
             RefreshImage();
         }
 
-        private void Edges() {
-            float[,] hmatrix = SobelLargeHorizontal();
-            float[,] vmatrix = SobelLargeVertical();
+        private void Edges(bool bigkernel) {
+            SetText("Finding edges...");
+            float[,] hmatrix, vmatrix;
+            if (bigkernel) {
+                hmatrix = SobelLargeHorizontal();
+                vmatrix = SobelLargeVertical();
+            }
+            else {
+                hmatrix = PrewittHorizontal();
+                vmatrix = PrewittVertical();
+            }
             int size = hmatrix.GetLength(0);
             int radius = size / 2;
             int width = InputImage.Size.Width;
@@ -177,8 +197,7 @@ namespace INFOIBV {
             int yrange = height - 1;
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    float output1 = 0;
-                    float output2 = 0;
+                    float output1 = 0, output2 = 0;
                     for (int u = x - radius; u <= x + radius; u++) {
                         for (int v = y - radius; v <= y + radius; v++) {
                             int eu = Math.Abs(-Math.Abs(u - xrange) + xrange);
@@ -191,11 +210,12 @@ namespace INFOIBV {
                     ImageOut[x, y] = op;
                 }
             }
-            Contrast();
             RefreshImage();
+            Contrast();
         }
 
         private void Laplacian() {
+            SetText("Applying Laplacian filter...");
             float[,] matrix = LaplacianKernel();
             int size = matrix.GetLength(0);
             int radius = size / 2;
@@ -236,10 +256,12 @@ namespace INFOIBV {
                     ImageOut[x, y] = op;
                 }
             }
+            RefreshImage();
             Contrast();
         }
 
         private void SharpenEdges(int weight = 1) {
+            SetText("Sharpening edges...");
             float[,] matrix = LaplacianKernel();
             int size = matrix.GetLength(0);
             int radius = size / 2;
@@ -287,6 +309,7 @@ namespace INFOIBV {
         }
 
         private void Median(int size) {
+            SetText("Applying median filter...");
             int radius = size / 2;
             int width = InputImage.Size.Width;
             int height = InputImage.Size.Height;
@@ -311,17 +334,48 @@ namespace INFOIBV {
         }
 
         private void Threshold(int threshold) {
+            SetText("Thresholding...");
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
                     int pixelColor = Image[x, y];
-                    if (pixelColor < threshold) Image[x, y] = 0;
+                    if (pixelColor < threshold) ImageOut[x, y] = 0;
                     else ImageOut[x, y] = 255;
                 }
             }
             RefreshImage();
         }
 
+        private void MaxEntropyThreshold() {
+            SetText("Finding max entropy threshold...");
+            // Precomputing p, P0, S0 and S1
+            double[] p = CalcHist();
+            double[] P0 = CalcCumulHist(p);
+            double[] S0 = new double[256], S1 = new double[256];
+            S0[0] = p[0] * Math.Log(p[0]);
+            S1[255] = 0;
+            for (int q = 1; q < 256; q++) {
+                S0[q] = S0[q - 1] + p[q] * Math.Log(p[q]);
+                int invq = 255 - q;
+                S1[invq] = S1[invq + 1] + p[invq + 1] * Math.Log(p[invq + 1]);
+            }
+
+            // Finding q with max entropy
+            int maxq = 0;
+            double maxEnt = 0;
+            for (int q = 0; q < 256; q++) {
+                double H0 = -S0[q] / P0[q] + Math.Log(P0[q]);
+                double H1 = -S1[q] / (1 - P0[q]) + Math.Log(1 - P0[q]);
+                double Ent = H0 + H1;
+                if (Ent > maxEnt) {
+                    maxEnt = Ent;
+                    maxq = q;
+                }
+            }
+            Threshold(maxq);
+        }
+
         private void BernsenThreshold(int radius, int cmin) {
+            SetText("Bernsen thresholding...");
             SEP[] seps = CircStructElem(radius * 2 + 1);
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
@@ -352,6 +406,7 @@ namespace INFOIBV {
         }
 
         private void Erosion(SEP[] structure) {
+            SetText("Eroding...");
             if (IsBinary()) {
                 MakeWhite();
                 SEP[] mirror = Mirror(structure);
@@ -390,6 +445,7 @@ namespace INFOIBV {
         }
 
         private void Dilation(SEP[] structure) {
+            SetText("Dilating...");
             if (IsBinary()) {
                 MakeBlack();
                 SEP[] mirror = Mirror(structure);
@@ -428,16 +484,19 @@ namespace INFOIBV {
         }
 
         private void ImgOpening(SEP[] structure) {
+            SetText("Opening...");
             Erosion(structure);
             Dilation(structure);
         }
 
         private void ImgClosing(SEP[] structure) {
+            SetText("Closing...");
             Dilation(structure);
             Erosion(structure);
         }
 
         private void RemoveEndPixels() {
+            SetText("Removing end pixels...");
             SEP[] seps = SquareStructElem(3);
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
@@ -458,6 +517,7 @@ namespace INFOIBV {
         }
 
         private void Thinning() {
+            SetText("Thinning...");
             HoM[] hitmiss = Golay();
             foreach (HoM hom in hitmiss) {
                 for (int x = 0; x < InputImage.Size.Width; x++) {
@@ -489,12 +549,12 @@ namespace INFOIBV {
             }
         }
 
-        private void ConvergingEdgeFix() {
+        private void ConvergingEdgeFix(EdgeFixType t) {
             int[,] lastImage;
             do {
                 lastImage = (int[,])Image.Clone();
-                Thinning();
-                RemoveEndPixels();
+                if (t == EdgeFixType.Thinning || t == EdgeFixType.Both) Thinning();
+                if (t == EdgeFixType.RemoveEndPixels || t == EdgeFixType.Both) RemoveEndPixels();
             } while (!ArraysEqual(lastImage, Image));
         }
 
@@ -667,14 +727,14 @@ namespace INFOIBV {
         private float[,] SobelLargeHorizontal() {
             return new float[5, 5] { { -0.25f, -0.2f, 0f, 0.2f, 0.25f },
                                      { -0.4f, -0.5f, 0f, 0.5f, 0.4f },
-                                     { -0.5f, 1f, 0f, 1f, 0.5f },
+                                     { -0.5f, 1f, 0f, -1f, 0.5f },
                                      { -0.4f, -0.5f, 0f, 0.5f, 0.4f },
                                      { -0.25f, -0.2f, 0f, 0.2f, 0.25f } };
         }
 
         private float[,] SobelLargeVertical() {
             return new float[5, 5] { { -0.25f, -0.4f, -0.5f, -0.4f, -0.25f },
-                                     { -0.2f, -0.5f, 1f, -0.5f, -0.2f },
+                                     { -0.2f, -0.5f, -1f, -0.5f, -0.2f },
                                      { 0f, 0f, 0f, 0f, 0f },
                                      { 0.2f, 0.5f, 1f, 0.5f, 0.2f},
                                      { 0.25f, 0.4f, 0.5f, 0.4f, 0.25f } };
@@ -899,6 +959,40 @@ namespace INFOIBV {
             return true;
         }
 
+        private double[] CalcHist() {
+            double[] hist = new double[256];
+            int w = InputImage.Size.Width;
+            int h = InputImage.Size.Height;
+            double N = h * w;
+            for (int x = 0; x < w; x++) {
+                for (int y = 0; y < h; y++) {
+                    int c = Image[x, y];
+                    hist[c] += 1 / N;
+                }
+            }
+            double sum = hist.Sum();
+            return hist;
+        }
+
+        private double[] CalcCumulHist() {
+            double[] hist = CalcHist();
+            double[] chist = new double[256];
+            chist[0] = hist[0];
+            for (int i = 1; i < 256; i++) {
+                chist[i] = hist[i] + chist[i - 1];
+            }
+            return chist;
+        }
+
+        private double[] CalcCumulHist(double[] hist) {
+            double[] chist = new double[256];
+            chist[0] = hist[0];
+            for (int i = 1; i < 256; i++) {
+                chist[i] = hist[i] + chist[i - 1];
+            }
+            return chist;
+        }
+
         private void RefreshImage() {
             Image = (int[,])ImageOut.Clone();
 
@@ -910,8 +1004,12 @@ namespace INFOIBV {
                 }
             }
             pictureBox2.Image = (Image)OutputImage;
-
             pictureBox2.Refresh();
+        }
+
+        private void SetText(string text) {
+            functionBox.Text = text;
+            functionBox.Refresh();
         }
 
         // Structs
