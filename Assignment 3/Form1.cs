@@ -68,11 +68,12 @@ namespace INFOIBV {
             // TODO: include here your own code
             Contrast();
             Linear(GaussianKernel(5, 1f));
-            Edges(true);
+            Edges(false);
             MaxEntropyThreshold();
             //BernsenThreshold(5, 40);
             //ImgClosing(CircStructElem(5));
-            ConvergingEdgeFix(EdgeFixType.Thinning);
+            //ConvergingEdgeFix(EdgeFixType.Thinning);
+            Hough(500, 1000, 0.4,254);
             SetText("Done");
 
             //==========================================================================================
@@ -679,7 +680,101 @@ namespace INFOIBV {
             return retlist;
         }
 
-        // Kernel functions
+        private void Hough(int accwidth, int accheight, double accthreshold, int colourthreshold = 50) {
+            SetText("Hough");
+            int total = 0;
+            int counter = 0;
+            foreach(int pixel in Image) {
+                if(pixel > colourthreshold) {
+                    total++;
+                }
+            }
+
+            double[,] acc = new double[accwidth, accheight];
+            double deltaTheta = Math.PI / accwidth;
+            double maxr =(int) Math.Sqrt(Image.GetLength(0)* Image.GetLength(0) + Image.GetLength(1)* Image.GetLength(1));
+            double deltaR = (maxr / (double)accheight);
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    int c = Image[x, y];
+                    if (c > colourthreshold) {
+                        counter++;
+                        SetText("Hough accumulating " + counter + " of " + total);
+                        for(int i = 0; i < accwidth; i++) {
+                            double theta = deltaTheta * i;
+                            double r = Math.Abs((int)(x * Math.Cos(theta) + y * Math.Sin(theta)));
+                            int rInt = (int)(r / deltaR);
+                            acc[i, rInt]+= c/255;
+                        }
+                    }
+                    ImageOut[x, y] = c;
+                }
+            }
+            SetText("Hough best fits");
+            List<Tuple<double, double>> lineList = new List<Tuple<double, double>>();
+            for (int x = 0; x < accwidth; x++) {
+                for (int y = 0; y < accheight; y++) {
+                    double startx = 0;                      //compensate for amount of possible pixels
+                    double starty = 0;
+                    double endx = 0;
+                    double endy = 0;
+                    double theta = x * deltaTheta;
+                    double r = y * deltaR;
+                    int xaty0 = (int) (r / Math.Cos(theta));
+                    int xatymax = (int)(r - InputImage.Size.Height * Math.Sin(theta) / Math.Cos(theta));
+                    int yatx0 = (int)(r / Math.Sin(theta));
+                    int yatxmax = (int)(r - InputImage.Size.Width * Math.Cos(theta));
+                    if(xaty0 > 0 && xaty0 < InputImage.Size.Width) {
+                        startx = xaty0;
+                        starty = 0;
+                    }
+                    else if (yatx0 > 0 && yatx0 < InputImage.Size.Height) {
+                        startx = 0;
+                        starty = yatx0;
+                    }
+                    if (xatymax > 0 && xatymax < InputImage.Size.Width) {
+                        endx = xatymax;
+                        endy = InputImage.Size.Height;
+                    }
+                    else if (yatxmax > 0 && yatxmax < InputImage.Size.Height) {
+                        endx = InputImage.Size.Width;
+                        endy = yatxmax;
+                    }
+                    else {
+                        endx = InputImage.Size.Width;
+                        endy = InputImage.Size.Height;
+                    }
+                    double dist = Math.Sqrt((startx - endx) * (startx - endx) + (starty - endy) * (starty - endy));
+                    if (acc[x, y]/dist > accthreshold) {
+                        lineList.Add(new Tuple<double, double>(theta, r));
+                    }
+                }
+            }
+            reconstructLines(lineList);
+        }
+
+        private void reconstructLines(List<Tuple<double, double>> linelist, double stepSize = 0.03) {
+            SetText("Hough reconstructing");
+            MakeBlack();
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    foreach (Tuple<double, double> tuple in linelist) {
+                        double theta = tuple.Item1;
+                        double r = tuple.Item2;
+                        double est = x * Math.Cos(theta) + y * Math.Sin(theta);
+                        if (est < r + 0.5 && est > r - 0.5) {
+                            ImageOut[x, y] = 255;
+                            break;
+                        }
+                    }
+                }
+            }
+            RefreshImage();
+        }
+
+
+
+            // Kernel functions
 
         private float[,] UniformKernel(int size) {
             if (size % 2 < 1) throw new Exception("Kernel size not an odd number.");
