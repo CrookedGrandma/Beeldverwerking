@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(INFOIBV));
             this.LoadImageButton = new System.Windows.Forms.Button();
             this.openImageDialog = new System.Windows.Forms.OpenFileDialog();
             this.imageFileName = new System.Windows.Forms.TextBox();
@@ -112,11 +113,11 @@
             // 
             this.functionBox.AutoSize = true;
             this.functionBox.BackColor = System.Drawing.Color.Transparent;
-            this.functionBox.Font = new System.Drawing.Font("Arial", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.functionBox.Location = new System.Drawing.Point(530, 23);
+            this.functionBox.Font = new System.Drawing.Font("Arial", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.functionBox.Location = new System.Drawing.Point(530, 28);
             this.functionBox.MaximumSize = new System.Drawing.Size(420, 0);
             this.functionBox.Name = "functionBox";
-            this.functionBox.Size = new System.Drawing.Size(207, 32);
+            this.functionBox.Size = new System.Drawing.Size(148, 23);
             this.functionBox.TabIndex = 6;
             this.functionBox.Text = "(active function)";
             // 
@@ -132,10 +133,10 @@
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.imageFileName);
             this.Controls.Add(this.LoadImageButton);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Location = new System.Drawing.Point(10, 10);
             this.Name = "INFOIBV";
-            this.ShowIcon = false;
-            this.Text = "INFOIBV";
+            this.Text = "Assignment 3";
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.ResumeLayout(false);

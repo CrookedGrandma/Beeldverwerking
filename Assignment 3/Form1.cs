@@ -1102,7 +1102,7 @@ namespace INFOIBV {
 
         private void SetText(string text) {
             functionBox.Text = text;
-            functionBox.Refresh();
+            functionBox.Update();
         }
 
         // Structs
