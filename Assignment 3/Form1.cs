@@ -10,10 +10,12 @@ namespace INFOIBV {
         private Color[,] ImageC, ImageOutC;
         private int[,] Image, ImageOut;
         private enum EdgeFixType { RemoveEndPixels, Thinning, Both };
+        private const double halfpi = Math.PI / 2;
 
         public INFOIBV() {
             InitializeComponent();
             SetText("");
+            SetText(findingsBox, "");
         }
 
         private void LoadImageButton_Click(object sender, EventArgs e) {
@@ -182,6 +184,7 @@ namespace INFOIBV {
 
         private void Edges(bool bigkernel) {
             SetText("Finding edges...");
+            MakeBlack();
             float[,] hmatrix, vmatrix;
             if (bigkernel) {
                 hmatrix = SobelLargeHorizontal();
@@ -197,8 +200,8 @@ namespace INFOIBV {
             int height = InputImage.Size.Height;
             int xrange = width - 1;
             int yrange = height - 1;
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
+            for (int x = radius + 1; x < width - radius - 1; x++) {
+                for (int y = radius + 1; y < height - radius - 1; y++) {
                     float output1 = 0, output2 = 0;
                     for (int u = x - radius; u <= x + radius; u++) {
                         for (int v = y - radius; v <= y + radius; v++) {
@@ -694,7 +697,7 @@ namespace INFOIBV {
             double[,] acc = new double[accwidth, accheight];
             double deltaTheta = Math.PI / accwidth;
             double maxr = (int)Math.Sqrt(Image.GetLength(0) * Image.GetLength(0) + Image.GetLength(1) * Image.GetLength(1));
-            double deltaR = (maxr / (double)accheight);
+            double deltaR = (2*maxr / (double)accheight);
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
                     int c = Image[x, y];
@@ -703,8 +706,11 @@ namespace INFOIBV {
                         SetText("Hough accumulating " + counter + " of " + total + "...");
                         for (int i = 0; i < accwidth; i++) {
                             double theta = deltaTheta * i;
-                            double r = Math.Abs((int)(x * Math.Cos(theta) + y * Math.Sin(theta)));
-                            int rInt = (int)(r / deltaR);
+                            double r = (int)(x * Math.Cos(theta) + y * Math.Sin(theta));
+                            int rInt = (int)((r+maxr) / deltaR);
+                            if(i == 255 && rInt == 818) {
+                                SetText("Yeet?");
+                            }
                             acc[i, rInt] += c / 255;
                         }
                     }
@@ -720,24 +726,24 @@ namespace INFOIBV {
                     double endx = 0;
                     double endy = 0;
                     double theta = x * deltaTheta;
-                    double r = y * deltaR;
+                    double r = y * deltaR-maxr;
                     int xaty0 = (int)(r / Math.Cos(theta));
-                    int xatymax = (int)(r - InputImage.Size.Height * Math.Sin(theta) / Math.Cos(theta));
+                    int xatymax = (int)((r - InputImage.Size.Height * Math.Sin(theta)) / Math.Cos(theta));
                     int yatx0 = (int)(r / Math.Sin(theta));
-                    int yatxmax = (int)(r - InputImage.Size.Width * Math.Cos(theta));
-                    if (xaty0 > 0 && xaty0 < InputImage.Size.Width) {
+                    int yatxmax = (int)((r - InputImage.Size.Width * Math.Cos(theta))/ Math.Sin(theta));
+                    if (xaty0 > 1 && xaty0 < InputImage.Size.Width - 1) {
                         startx = xaty0;
                         starty = 0;
                     }
-                    else if (yatx0 > 0 && yatx0 < InputImage.Size.Height) {
+                    else if (yatx0 > 1 && yatx0 < InputImage.Size.Height - 1) {
                         startx = 0;
                         starty = yatx0;
                     }
-                    if (xatymax > 0 && xatymax < InputImage.Size.Width) {
+                    if (xatymax > 1 && xatymax < InputImage.Size.Width - 1) {
                         endx = xatymax;
                         endy = InputImage.Size.Height;
                     }
-                    else if (yatxmax > 0 && yatxmax < InputImage.Size.Height) {
+                    else if (yatxmax > 1 && yatxmax < InputImage.Size.Height - 1) {
                         endx = InputImage.Size.Width;
                         endy = yatxmax;
                     }
@@ -746,7 +752,8 @@ namespace INFOIBV {
                         endy = InputImage.Size.Height;
                     }
                     double dist = Math.Sqrt((startx - endx) * (startx - endx) + (starty - endy) * (starty - endy));
-                    if (acc[x, y] / dist > accthreshold) {
+                    if (acc[x, y] / dist > accthreshold && dist > 30) {
+                        double temp = acc[x, y];
                         lineList.Add(new Line(theta, r));
                     }
                 }
@@ -756,9 +763,64 @@ namespace INFOIBV {
             return lineList;
         }
 
-        private void FindSignFromLines(List<Line>) {
+        private void FindSignFromLines(List<Line> lines, double minDistance = 10, double error = 0.03707963267948966) { // default error = pi/20
+            SetText("Starting rectangle finding...");
             bool found = false;
-            // Algorithm
+            double minPerpR, maxPerpR, minParR, maxParR;
+            Line minPerpLine, maxPerpLine, minParLine, maxParLine;
+            int counter = 1;
+
+            foreach (Line line in lines) {
+                SetText("Checking line " + counter + " of " + lines.Count + "...");
+                counter++;
+                // Set variables
+                double theta = line.Theta;
+                double perpTheta;
+                if (theta > halfpi) perpTheta = theta - halfpi;
+                else perpTheta = theta + halfpi;
+                minParR = line.R;
+                maxParR = line.R;
+                minParLine = line;
+                maxParLine = line;
+                minPerpLine = new Line();
+                maxPerpLine = new Line();
+                minPerpR = Math.Sqrt(InputImage.Size.Width * InputImage.Size.Width + InputImage.Size.Height * InputImage.Size.Height);
+                maxPerpR = -Math.Sqrt(InputImage.Size.Width * InputImage.Size.Width + InputImage.Size.Height * InputImage.Size.Height);
+
+                // Find matches
+                foreach (Line testLine in lines) {
+                    if (testLine.Equals(line)) continue;
+                    if (AnglesEqual(theta, testLine.Theta, error)) {
+                        if (Math.Abs(testLine.R) > maxParR) {
+                            maxParR = Math.Abs(testLine.R);
+                            maxParLine = testLine;
+                        }
+                        if (Math.Abs(testLine.R) < minParR) {
+                            minParR = Math.Abs(testLine.R);
+                            minParLine = testLine;
+                        }
+                    }
+                    if (AnglesEqual(perpTheta, testLine.Theta, error)) {
+                        if (Math.Abs(testLine.R) > maxPerpR) {
+                            maxPerpR = Math.Abs(testLine.R);
+                            maxPerpLine = testLine;
+                        }
+                        if (Math.Abs(testLine.R) < minPerpR) {
+                            minPerpR = Math.Abs(testLine.R);
+                            minPerpLine = testLine;
+                        }
+                    }
+                }
+
+                // Determine if we should continue searching
+                if ((maxParR) - (minParR) > minDistance && (maxPerpR) - (minPerpR) > minDistance) {
+                    found = true;
+                    List<Line> rectangle = new List<Line> { maxParLine, minParLine, maxPerpLine, minPerpLine };
+                    ReconstructLines(rectangle);
+                    break;
+                }
+            }
+
             if (found) SetText(findingsBox, "sign found! :)");
             else SetText(findingsBox, "no sign found :(");
         }
@@ -1035,14 +1097,17 @@ namespace INFOIBV {
         }
 
         private void ReconstructLines(List<Line> linelist, bool reset = true) {
+            int counter = 1;
             MakeBlack();
             for (int x = 0; x < InputImage.Size.Width; x++) {
+                SetText("Checking column " + counter + " of " + (InputImage.Size.Width) + " for line...");
+                counter++;
                 for (int y = 0; y < InputImage.Size.Height; y++) {
                     foreach (Line line in linelist) {
                         double theta = line.Theta;
                         double r = line.R;
                         double est = x * Math.Cos(theta) + y * Math.Sin(theta);
-                        if (est < r + 0.5 && est > r - 0.5) {
+                        if (est <= r + 0.5 && est > r - 0.5) {
                             ImageOut[x, y] = 255;
                             break;
                         }
@@ -1059,6 +1124,20 @@ namespace INFOIBV {
                 }
             }
             return true;
+        }
+
+        private bool AnglesEqual(double theta, double theta2, double error) {
+            if (theta < error) {
+                if (theta + error >= theta2 && theta2 >= 0) return true;
+                else if (Math.PI >= theta2 && theta2 >= theta - error + Math.PI) return true;
+                else return false;
+            }
+            else if (theta > Math.PI - error) {
+                if (Math.PI >= theta2 && theta2 >= theta - error) return true;
+                else if (theta + error - Math.PI >= theta2 && theta2 >= 0) return true;
+                else return false;
+            }
+            else return (theta + error >= theta2 && theta2 >= theta - error);
         }
 
         private double[] CalcHist() {
@@ -1202,6 +1281,9 @@ namespace INFOIBV {
             }
             public double Theta { get; set; }
             public double R { get; set; }
+            public override string ToString() {
+                return "θ: " + Theta + ", r: " + R;
+            }
         }
 
         /// <summary>

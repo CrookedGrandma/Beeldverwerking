@@ -127,7 +127,7 @@
             this.findingsBox.AutoSize = true;
             this.findingsBox.BackColor = System.Drawing.Color.Transparent;
             this.findingsBox.Font = new System.Drawing.Font("Arial", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.findingsBox.Location = new System.Drawing.Point(796, 28);
+            this.findingsBox.Location = new System.Drawing.Point(897, 583);
             this.findingsBox.MaximumSize = new System.Drawing.Size(145, 23);
             this.findingsBox.MinimumSize = new System.Drawing.Size(145, 23);
             this.findingsBox.Name = "findingsBox";
@@ -140,7 +140,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1052, 587);
+            this.ClientSize = new System.Drawing.Size(1052, 615);
             this.Controls.Add(this.findingsBox);
             this.Controls.Add(this.functionBox);
             this.Controls.Add(this.pictureBox2);
