@@ -73,7 +73,7 @@ namespace INFOIBV {
             //BernsenThreshold(5, 40);
             //ImgClosing(CircStructElem(5));
             //ConvergingEdgeFix(EdgeFixType.Thinning);
-            Hough(500, 1000, 0.4,254);
+            Hough(500, 1000, 0.4, 254);
             SetText("Done");
 
             //==========================================================================================
@@ -681,37 +681,37 @@ namespace INFOIBV {
         }
 
         private void Hough(int accwidth, int accheight, double accthreshold, int colourthreshold = 50) {
-            SetText("Hough");
+            SetText("Starting Hough transform...");
             int total = 0;
             int counter = 0;
-            foreach(int pixel in Image) {
-                if(pixel > colourthreshold) {
+            foreach (int pixel in Image) {
+                if (pixel > colourthreshold) {
                     total++;
                 }
             }
 
             double[,] acc = new double[accwidth, accheight];
             double deltaTheta = Math.PI / accwidth;
-            double maxr =(int) Math.Sqrt(Image.GetLength(0)* Image.GetLength(0) + Image.GetLength(1)* Image.GetLength(1));
+            double maxr = (int)Math.Sqrt(Image.GetLength(0) * Image.GetLength(0) + Image.GetLength(1) * Image.GetLength(1));
             double deltaR = (maxr / (double)accheight);
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
                     int c = Image[x, y];
                     if (c > colourthreshold) {
                         counter++;
-                        SetText("Hough accumulating " + counter + " of " + total);
-                        for(int i = 0; i < accwidth; i++) {
+                        SetText("Hough accumulating " + counter + " of " + total + "...");
+                        for (int i = 0; i < accwidth; i++) {
                             double theta = deltaTheta * i;
                             double r = Math.Abs((int)(x * Math.Cos(theta) + y * Math.Sin(theta)));
                             int rInt = (int)(r / deltaR);
-                            acc[i, rInt]+= c/255;
+                            acc[i, rInt] += c / 255;
                         }
                     }
                     ImageOut[x, y] = c;
                 }
             }
-            SetText("Hough best fits");
-            List<Tuple<double, double>> lineList = new List<Tuple<double, double>>();
+            SetText("Finding best Hough fits...");
+            List<Line> lineList = new List<Line>();
             for (int x = 0; x < accwidth; x++) {
                 for (int y = 0; y < accheight; y++) {
                     double startx = 0;                      //compensate for amount of possible pixels
@@ -720,11 +720,11 @@ namespace INFOIBV {
                     double endy = 0;
                     double theta = x * deltaTheta;
                     double r = y * deltaR;
-                    int xaty0 = (int) (r / Math.Cos(theta));
+                    int xaty0 = (int)(r / Math.Cos(theta));
                     int xatymax = (int)(r - InputImage.Size.Height * Math.Sin(theta) / Math.Cos(theta));
                     int yatx0 = (int)(r / Math.Sin(theta));
                     int yatxmax = (int)(r - InputImage.Size.Width * Math.Cos(theta));
-                    if(xaty0 > 0 && xaty0 < InputImage.Size.Width) {
+                    if (xaty0 > 0 && xaty0 < InputImage.Size.Width) {
                         startx = xaty0;
                         starty = 0;
                     }
@@ -745,36 +745,15 @@ namespace INFOIBV {
                         endy = InputImage.Size.Height;
                     }
                     double dist = Math.Sqrt((startx - endx) * (startx - endx) + (starty - endy) * (starty - endy));
-                    if (acc[x, y]/dist > accthreshold) {
-                        lineList.Add(new Tuple<double, double>(theta, r));
+                    if (acc[x, y] / dist > accthreshold) {
+                        lineList.Add(new Line(theta, r));
                     }
                 }
             }
-            reconstructLines(lineList);
+            ReconstructLines(lineList);
         }
 
-        private void reconstructLines(List<Tuple<double, double>> linelist, double stepSize = 0.03) {
-            SetText("Hough reconstructing");
-            MakeBlack();
-            for (int x = 0; x < InputImage.Size.Width; x++) {
-                for (int y = 0; y < InputImage.Size.Height; y++) {
-                    foreach (Tuple<double, double> tuple in linelist) {
-                        double theta = tuple.Item1;
-                        double r = tuple.Item2;
-                        double est = x * Math.Cos(theta) + y * Math.Sin(theta);
-                        if (est < r + 0.5 && est > r - 0.5) {
-                            ImageOut[x, y] = 255;
-                            break;
-                        }
-                    }
-                }
-            }
-            RefreshImage();
-        }
-
-
-
-            // Kernel functions
+        // Kernel functions
 
         private float[,] UniformKernel(int size) {
             if (size % 2 < 1) throw new Exception("Kernel size not an odd number.");
@@ -1045,6 +1024,25 @@ namespace INFOIBV {
             if (reset) RefreshImage();
         }
 
+        private void ReconstructLines(List<Line> linelist, bool reset = true) {
+            SetText("Hough reconstructing");
+            MakeBlack();
+            for (int x = 0; x < InputImage.Size.Width; x++) {
+                for (int y = 0; y < InputImage.Size.Height; y++) {
+                    foreach (Line line in linelist) {
+                        double theta = line.Theta;
+                        double r = line.R;
+                        double est = x * Math.Cos(theta) + y * Math.Sin(theta);
+                        if (est < r + 0.5 && est > r - 0.5) {
+                            ImageOut[x, y] = 255;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (reset) RefreshImage();
+        }
+
         private bool ArraysEqual(int[,] a, int[,] b) {
             for (int x = 0; x < a.GetLength(0); x++) {
                 for (int y = 0; y < a.GetLength(1); y++) {
@@ -1178,6 +1176,18 @@ namespace INFOIBV {
             public override string ToString() {
                 return "(" + x + ", " + y + ")";
             }
+        }
+
+        /// <summary>
+        /// A line of the form xcos(theta) + ysin(theta) = r
+        /// </summary>
+        private struct Line {
+            public Line(double theta, double r) {
+                Theta = theta;
+                R = r;
+            }
+            public double Theta { get; set; }
+            public double R { get; set; }
         }
 
         /// <summary>
