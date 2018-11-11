@@ -68,12 +68,12 @@ namespace INFOIBV {
             // TODO: include here your own code
             Contrast();
             Linear(GaussianKernel(5, 1f));
-            Edges(false);
+            Edges(true);
             MaxEntropyThreshold();
             //BernsenThreshold(5, 40);
             //ImgClosing(CircStructElem(5));
-            //ConvergingEdgeFix(EdgeFixType.Thinning);
-            Hough(500, 1000, 0.4, 254);
+            ConvergingEdgeFix(EdgeFixType.Thinning);
+            List<Line> Findings = Hough(500, 1000, 0.35);
             SetText("Done");
 
             //==========================================================================================
@@ -680,7 +680,7 @@ namespace INFOIBV {
             return retlist;
         }
 
-        private void Hough(int accwidth, int accheight, double accthreshold, int colourthreshold = 50) {
+        private List<Line> Hough(int accwidth, int accheight, double accthreshold, int colourthreshold = 50) {
             SetText("Starting Hough transform...");
             int total = 0;
             int counter = 0;
@@ -750,7 +750,9 @@ namespace INFOIBV {
                     }
                 }
             }
+            SetText("Reconstructing Hough findings...");
             ReconstructLines(lineList);
+            return lineList;
         }
 
         // Kernel functions
@@ -1025,7 +1027,6 @@ namespace INFOIBV {
         }
 
         private void ReconstructLines(List<Line> linelist, bool reset = true) {
-            SetText("Hough reconstructing");
             MakeBlack();
             for (int x = 0; x < InputImage.Size.Width; x++) {
                 for (int y = 0; y < InputImage.Size.Height; y++) {
