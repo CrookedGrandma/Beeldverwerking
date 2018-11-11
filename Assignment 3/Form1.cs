@@ -1,4 +1,7 @@
-﻿using System;
+﻿//Tijmen van ter Beek (5961564)
+//Kasper Nooteboom (5845866)
+
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -73,7 +76,6 @@ namespace INFOIBV {
             Edges(true);
             MaxEntropyThreshold();
             //BernsenThreshold(5, 40);
-            //ImgClosing(CircStructElem(5));
             ConvergingEdgeFix(EdgeFixType.Thinning);
             List<Line> Findings = Hough(500, 1000, 0.35);
             FindSignFromLines(Findings);
