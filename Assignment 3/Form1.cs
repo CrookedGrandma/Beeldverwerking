@@ -74,6 +74,7 @@ namespace INFOIBV {
             //ImgClosing(CircStructElem(5));
             ConvergingEdgeFix(EdgeFixType.Thinning);
             List<Line> Findings = Hough(500, 1000, 0.35);
+            FindSignFromLines(Findings);
             SetText("Done");
 
             //==========================================================================================
@@ -755,6 +756,13 @@ namespace INFOIBV {
             return lineList;
         }
 
+        private void FindSignFromLines(List<Line>) {
+            bool found = false;
+            // Algorithm
+            if (found) SetText(findingsBox, "sign found! :)");
+            else SetText(findingsBox, "no sign found :(");
+        }
+
         // Kernel functions
 
         private float[,] UniformKernel(int size) {
@@ -1104,6 +1112,11 @@ namespace INFOIBV {
         private void SetText(string text) {
             functionBox.Text = text;
             functionBox.Update();
+        }
+
+        private void SetText(Label label, string text) {
+            label.Text = text;
+            label.Update();
         }
 
         // Structs

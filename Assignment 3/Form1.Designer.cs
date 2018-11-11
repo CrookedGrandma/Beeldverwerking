@@ -38,6 +38,7 @@
             this.saveButton = new System.Windows.Forms.Button();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.functionBox = new System.Windows.Forms.Label();
+            this.findingsBox = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
@@ -121,11 +122,26 @@
             this.functionBox.TabIndex = 6;
             this.functionBox.Text = "(active function)";
             // 
+            // findingsBox
+            // 
+            this.findingsBox.AutoSize = true;
+            this.findingsBox.BackColor = System.Drawing.Color.Transparent;
+            this.findingsBox.Font = new System.Drawing.Font("Arial", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.findingsBox.Location = new System.Drawing.Point(796, 28);
+            this.findingsBox.MaximumSize = new System.Drawing.Size(145, 23);
+            this.findingsBox.MinimumSize = new System.Drawing.Size(145, 23);
+            this.findingsBox.Name = "findingsBox";
+            this.findingsBox.Size = new System.Drawing.Size(145, 23);
+            this.findingsBox.TabIndex = 7;
+            this.findingsBox.Text = "(findings)";
+            this.findingsBox.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            // 
             // INFOIBV
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1052, 587);
+            this.Controls.Add(this.findingsBox);
             this.Controls.Add(this.functionBox);
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.saveButton);
@@ -155,6 +171,7 @@
         private System.Windows.Forms.Button saveButton;
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.Label functionBox;
+        private System.Windows.Forms.Label findingsBox;
     }
 }
 
